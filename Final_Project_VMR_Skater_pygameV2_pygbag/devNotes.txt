@@ -1,0 +1,71 @@
+Resources:
+For Text and Buttons: https://www.textstudio.com/account/preset
+
+
+
+"NEXT STEPS:"
+"make it so the playerinput goes to a tricklist class or function to handle inputs and match to tricks"
+"then execute the tricks. Next would be tying in the sound with the movement. diff between wav (too big?) and mp3 in game"
+
+"Updates as of 10/27/2024"
+"I added scrolling background based on player movement and acceleration to skater - DL"
+
+"ISSUES:"
+"Don't know why on the reset the character jumps when press space. gameActive is False, so why!!!" #Resolved
+"There's a glitch in the world build or display that happens every 3 seconds. obvious when scrolling"
+"fix sizing of the png obstacles" #Resolved (update the rect calc and surf in the update after init)
+"fix button logic to go from main menu to game directly" #Resolved
+"fix space bar hold squat image when not needed" #Resolved with animation section
+"jump dynamics are broken due to image updates" #Resolved (update was incorectly placed)
+"if you hit the space bar just before crashing and reset game that key will still make character jump" #Resolved
+"player vertical reset after endscreen" #Resolved
+"fix player land sound doesn't play if still holding space bar"#Resolved
+"fix rollingSound not playing after certain grinds" #Resolved
+"fix while collision vertical is happening jumping back upward enables grind should not be allowed"
+"if you come in at the corner to an object that is small you game does not end you're in the clear it's ok but could be bettter"
+
+"TO DO:"
+"add game music to play always" #Done
+"add ollie animation" #DONE
+"add grind logic" #done
+"add kickflip and heelflip animation"
+"if time add a few more tricks"
+"use a trickmanager class to jump from player input"
+"add sound on rolling and ollie to pair with player input" #Done
+"add scrolling of background to player movement" #Done
+"add def or class to handle loose conditions with obstacle collisions"
+"add MAIN MENU class for home page" #Done
+"needs art bashed together and buttons for actions" #Done
+"make button class" #Done
+"define single points on boned ollie frame to align with grind on rail" #Done
+"make game harder the longer the timer goes by adjusting speed and frequency of obstacles" #or adjust accel and max speed
+"Fixed loading of images to prevent squashing but now jump doesn't work" #Done
+"add for deceleration using K_a an image that sticks foot out until speed = 0" #Done (logic done need to add image to animation)
+"add image for stopping logic in animation"
+"add images for kick push in animation"
+"add score to a class so we can pull the final score for end screen" #Done not in class just method is fine
+"add cycling through different backgrounds" #Not needed since we simplified
+"clean final code"
+"skateboard class not in use right now but can be used for tricks"
+"learn how to clear objects such as rects.clear()" #Resolved just move the rect out of the way and reset when needed
+"fix end screen and menu logic so they go accordingly" #Done
+"Record own skateboarding sound and mix to sound good then add to library here in game" #Done
+"add custom text file for game text" #Resolved with text graphics for better stylistic look
+"fix cash appearing" #Done
+"add prediction collision with dx" #Done resolved with two rects for dx and dy collisions
+"add crash sound for obstacles" #done
+"ask prof what is better for the obstacles? images all loaded in or give the arg from a list of images"
+"replace stock board with art from Liv" #done
+"Add controls to main menu" #Done
+"Add high score screen" #done
+"Add falling sound" #done
+"add special item collect sound" #done
+"change save txt files to save only once game ends and then update endScreen()" #done
+"make grind work only if player inAirBool = True, playerRect bottom is above obstacle"
+"make special items appear higher up than cash" #done
+"make a winning Screen" #done used confetti and print you win but can keep collecting cash
+"make it so if you click the you win button it enables and disables the confetti"
+"if all items are collected you win, with an option to keep collecting more cash and game speeds up with time" #done
+"make items appear on game screen and end screen with total of items" #done
+"Add BAIL Sound to the sections below listed as 'ADD BAIL SOUND HERE'" #done
+"Add phillips head screws to board grip tape" #done
