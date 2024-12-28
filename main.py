@@ -303,7 +303,7 @@ class Player():
             if self.spaceBarHeld:  # If space was just released
                 self.gravityBool = True
                 # print(self.playerRect.midbottom[1])
-                self.gravity = -25
+                self.gravity = -20 #25 UNCOMMENT used to be 25 when resolution was full
                 # ollieUpSound.play()
                 # ollieUpSound.set_volume(0.5)
                 self.inAirBool = True
@@ -757,7 +757,7 @@ while running:
                 # controlsButton.mouseBool = False
                 # mainMenu.menuBool = True
                 # endScreen.endBool = False
-                gameActive = False
+                # gameActive = False #UNCOMMENT
                 obstacle1.ObstacleRect.x = width
                 player.reset(player_xPos,player_yPos)
             pass
