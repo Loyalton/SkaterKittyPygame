@@ -8,7 +8,8 @@ import random
 # To Do:
 #Add collision detection so that the skater can grind the objects
 "Might have to do with the new values. maybe change to integers or add in main menu and other stuff to handle end game stuff"
-#Edit the jump height to be a percentage of what it was with floor division
+#Edit the jump height to be a percentage of what it was with floor division #done
+#fix display issue of items
 
 
 pg.init()
@@ -187,7 +188,7 @@ class Player():
         self.dy = 0
         self.acceleration = 0.35/2  
         self.deceleration = 0.05
-        self.max_speed = 12 #12 feels like a good speed  
+        self.max_speed = 14 #12 feels like a good speed  
         self.movingRight = False
         self.movingLeft = False
         self.RailOllie = False
@@ -537,7 +538,7 @@ class Player():
 
     def applyGravity(self, dt):
         # print(self.gravity)
-        self.gravity += 63*dt 
+        self.gravity += 66*dt #63*dt,
         # print(self.gravity)
         # self.tempPos = (self.playerRect.y//1) 
         # self.playerRect.y = self.tempPos + self.gravity
