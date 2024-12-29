@@ -177,7 +177,7 @@ class Player():
         self.movingRight = False
         self.movingLeft = False
         self.RailOllie = False
-        self.ollieHeight = 22
+        self.ollieHeight = 25
 
         #bools for Sound
         self.playRolling = False
@@ -279,7 +279,8 @@ class Player():
             self.playRolling = False
                 
 
-    def playerInput(self):
+    def playerInput(self, dt):
+        self.ollieHeight = min(1500*dt-5, player_yPos-(width/2)+4) #ollie height difference based on dt for web(perfer fixed) vesus local (perfer dt)
         # self.playerMotion()       
 
         #CONTROLS by USER INPUT
@@ -479,7 +480,7 @@ class Player():
             gameActive = False
             pass
     
-    def animation(self):
+    def animation(self, dt):
         # self.applyGravity() 
         # If space is held, use the first frame (image index 1)
         if self.spaceBarHeld and self.playerRect.bottom >= player_yPos: #ISSUE fix: check after player in air in issue is still there
@@ -492,14 +493,14 @@ class Player():
         elif self.inAirBool == True or self.RailOllie == True:
 
         #cycle through ollie images
-            self.ollieCounter += 1
+            self.ollieCounter += 1*dt
             
-            if self.ollieCounter >= self.ollieAnimationSpeed:
+            if self.ollieCounter >= self.ollieAnimationSpeed*dt:
                 self.ollieCounter = 0
                 if self.current_image_index < len(self.ollieImages) - 1:
-                    self.counterFrame += 1
+                    self.counterFrame += 1*dt
                     self.current_image_index = 2
-                    if self.counterFrame == 3: #change value to adjust how long slide up image is held
+                    if self.counterFrame >= 1.5*dt: #used to be 3 change value to adjust how long slide up image is held
                         self.current_image_index += 1  #go to next image
                         self.counterFrame = 0
                 else:
@@ -588,9 +589,9 @@ class Player():
         # pg.draw.rect(screen, (255, 0, 0), boardRect, 2)
         # self.playerInput()
         self.playerMotion()
-        self.playerInput()
+        self.playerInput(dt)
         self.collision(self.playerRect, self.curPosPass)
-        self.animation()
+        self.animation(dt)
         self.applyGravity(dt)
         
         # screen.blit(self.player, self.curPosPass)
