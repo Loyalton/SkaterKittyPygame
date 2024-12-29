@@ -1160,15 +1160,16 @@ class Obstacles():
 #         self.draw()
              
 class SkateParts():
-    def __init__(self, imgIndexOG, itemCount, scaleNum = 1/10, staticMotion=False, rotate = False):
+    def __init__(self, skatepart_imgs, imgIndexOG, itemCount, scaleNum = 1/10, staticMotion=False):
         self.imgIndexOG = imgIndexOG
         self.itemCountOG = itemCount
         self.scaleNum = scaleNum
         self.angle = 0
         self.staticMotion = staticMotion
-        self.reset()
+        
+        self.reset(skatepart_imgs)
 
-    def reset(self):
+    def reset(self, skatepart_imgs):
         # self.img = [
         #     pg.image.load("graphics/wheel.png").convert_alpha(),
         #     pg.image.load("graphics/wheelPack.png").convert_alpha(),
@@ -1182,9 +1183,10 @@ class SkateParts():
         #     pg.image.load("graphics/boardSideViewR.png").convert_alpha()
 
         # ]
+        self.skatepart_imgs_List = skatepart_imgs
 
-        # self.imgIndex 
-        self.imgSelect = self.imgIndexOG
+        self.imgIndex = self.imgIndexOG
+        self.imgSelect = self.skatepart_imgs_List[self.imgIndex]
 
         self.imgSize = self.imgSelect.get_size()  # Original image size
         new_width = int(self.imgSize[0] * self.scaleNum * 0.625)
@@ -1251,10 +1253,8 @@ class SkateParts():
                 self.rotateBool = True
             elif self.imgIndexOG in self.flipList:
                 self.flipBool = True
-
-        
-            
-    def update(self):
+       
+    def update(self, dt):
         self.trackItem()
         if self.spawnItem == True:
             if self.staticMotion == False:
@@ -1275,12 +1275,12 @@ class SkateParts():
             #     with open(f"saveParts{self.imgIndex}.txt", mode="w", encoding="utf-8") as f:
             #         self.lines = f.writelines(self.lines)
             
-            self.draw()
+            self.draw(dt)
 
-    def rotateItem(self):
-        self.rotateCount +=1
+    def rotateItem(self, dt=0):
+        self.rotateCount +=1*dt
         if self.rotateBool == True:
-            if self.rotateCount >=5:
+            if self.rotateCount >=5*dt:
                 self.angle += 90 #for some reason this also makes the image change size if smaller? BUG
                 self.currPosRot = self.rect.midbottom
                 rotatedSurf = pg.transform.rotate(self.imgSelect, self.angle)  #rotate og image so doesn't get blurry
@@ -1289,13 +1289,13 @@ class SkateParts():
                 self.rect.midbottom = self.currPosRot
                 self.rotateCount = 0
     
-    def flipItem(self):
-        self.flipCount +=1        
+    def flipItem(self, dt=0):
+        self.flipCount +=1*dt        
         if self.flipBool == True:
-            if self.flipCount >=self.flipTimeNum*2:
+            if self.flipCount >= 50*dt: #self.flipTimeNum*2: #50 may need to change
                 self.flip_x = 1
                 self.flipCount = 0
-            elif self.flipCount >= self.flipTimeNum:
+            elif self.flipCount >= 25*dt: #self.flipTimeNum:
                 self.flip_x = 0    
             self.currPosRot = self.rect.midbottom
             rotatedSurf = pg.transform.flip(self.imgSelect, self.flip_x, 0)  #rotate og image so doesn't get blurry
@@ -1303,11 +1303,11 @@ class SkateParts():
             self.rect = self.surf.get_rect()
             self.rect.midbottom = self.currPosRot                         
 
-    def draw(self):
+    def draw(self, dt):
         if self.rotateBool == True:
-            self.rotateItem()
+            self.rotateItem(dt)
         elif self.flipBool == True:
-            self.flipItem()
+            self.flipItem(dt)
         screen.blit(self.surf, self.rect)
         # pg.draw.rect(surface=screen, color="red", rect=self.rect, width= 2)
 
@@ -1538,19 +1538,19 @@ cash = Cash()
 cashDisp = Cash(True)
 
 # #skateparts
-wheel = SkateParts(skatepart_imgs[0], 4)
-wheelPack = SkateParts(skatepart_imgs[1], 1, 1/18, True)
-trucks = SkateParts(skatepart_imgs[2], 2) 
-truckPack = SkateParts(skatepart_imgs[3],1, 1/18, True)
-bearings = SkateParts(skatepart_imgs[4], 8)
-bearingsDisp = SkateParts(skatepart_imgs[4], 1, 1/18, True)
-boardDeck = SkateParts(skatepart_imgs[5], 1, 1/14)
-boardDeckDisp = SkateParts(skatepart_imgs[5], 1, 1/18, True)
-boardSideLDisp = SkateParts(skatepart_imgs[6], 1, 1/8, True)
-boardSideRDisp = SkateParts(skatepart_imgs[9], 1, 1/8, True)
-boardGripTapeDisp = SkateParts(skatepart_imgs[7], 1, 1/8, True)
-completeDeckDisp = SkateParts(skatepart_imgs[8], 1, 1/8, True)
-completeDeck = SkateParts(skatepart_imgs[8], 1)
+wheel = SkateParts(skatepart_imgs, 0, 4)
+wheelPack = SkateParts(skatepart_imgs, 1, 1, 1/18, True)
+trucks = SkateParts(skatepart_imgs, 2, 2) 
+truckPack = SkateParts(skatepart_imgs, 3,1, 1/18, True)
+bearings = SkateParts(skatepart_imgs, 4, 8)
+bearingsDisp = SkateParts(skatepart_imgs, 4, 1, 1/18, True)
+boardDeck = SkateParts(skatepart_imgs, 5, 1, 1/14)
+boardDeckDisp = SkateParts(skatepart_imgs, 5, 1, 1/18, True)
+boardSideLDisp = SkateParts(skatepart_imgs, 6, 1, 1/8, True)
+boardSideRDisp = SkateParts(skatepart_imgs, 9, 1, 1/8, True)
+boardGripTapeDisp = SkateParts(skatepart_imgs, 7, 1, 1/8, True)
+completeDeckDisp = SkateParts(skatepart_imgs, 8, 1, 1/8, True)
+completeDeck = SkateParts(skatepart_imgs, 8, 1)
 
 
 specialItemSpawnCounter = 0 #used to make a timer to spawn them more sparely
@@ -1669,17 +1669,18 @@ while running:
         cash.update()
         player.update(dt)
         displayScore()
+        # wheel.draw(dt)
 
         #randomly spawn special items so it feels more random and unique    
         specialItemSpawnInt = random.randint(0, len(spawnSpecialItemList)-1)
         if spawnSpecialItemBool == True:
-            spawnSpecialItemList[specialItemSpawnInt].update()
+            spawnSpecialItemList[specialItemSpawnInt].update(dt)
             tempInt = specialItemSpawnInt
             spawnSpecialItemBool = False
         else:
             specialItemSpawnCounter += 1*dt
             if spawnSpecialItemList[tempInt].rect.right > 0: #only update if it is on the screen
-                spawnSpecialItemList[tempInt].update()
+                spawnSpecialItemList[tempInt].update(dt)
             else:
                 spawnSpecialItemList[tempInt].rect.right = -201 #this will trigger the class in the tracking to move it to the right
             if spawnSpecialItemList[tempInt].spawnItem == False: #only false if item count is zero meaning all collected
@@ -1687,7 +1688,7 @@ while running:
             if spawnSpecialItemList[tempInt].rect.right <0: #spawnSpecialItemList[tempInt].spawnNewTrigger == True:
                 if specialItemSpawnCounter >= 500*dt: #make higher for more sparse spawning
 
-                    spawnSpecialItemList[specialItemSpawnInt].update()
+                    spawnSpecialItemList[specialItemSpawnInt].update(dt)
                     spawnSpecialItemBool = True
                     specialItemSpawnCounter = 0
 
