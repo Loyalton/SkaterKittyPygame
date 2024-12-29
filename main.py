@@ -1389,6 +1389,16 @@ class SpecialItemDisp():
         self.conStartPosy = 0
         self.winButtonAnimationCounter = 0
         self.animationLimitNum = 50
+
+        self.imgConfetti = pg.image.load("graphics/winConfetti.png").convert_alpha()
+        self.scaleNum = 1/2
+        self.imgConfettiWidth = self.imgConfetti.get_width()
+        self.imgConfettiHeight = self.imgConfetti.get_height()
+        self.scaledimg = (self.imgConfettiWidth*0.625, self.imgConfettiHeight*0.625)
+        self.imgConfetti = pg.transform.smoothscale(self.imgConfetti, self.scaledimg)
+
+        self.imgRect = self.imgConfetti.get_rect()
+
         self.reset()
     def reset(self):
         cashDisp.rect.center = (width*1/6, 100 *0.625)
@@ -1415,26 +1425,23 @@ class SpecialItemDisp():
         self.winTextSurf = textFont1.render('You Win!!!', True, ("green"))
         self.winTextRect = self.winTextSurf.get_rect(center = (width/2 , 200 *0.625))
 
-        self.imgConfetti = pg.image.load("graphics/winConfetti.png").convert_alpha()
-
-        self.imgRect = self.imgConfetti.get_rect()
         
 
-    def drawConfetti(self):
-        self.conStartPosy += 1
+    def drawConfetti(self, dt):
+        self.conStartPosy += 63*dt
         # print(self.conStartPosy)
-        if self.conStartPosy >= self.imgConfetti.get_height()-300:
+        if self.conStartPosy >= self.imgConfetti.get_height(): #-int(300*0.625):
             self.conStartPosy = 0
         screen.blit(self.imgConfetti, (self.conStartPosx , self.conStartPosy, self.imgRect.w, self.imgRect.h))
-        screen.blit(self.imgConfetti, (self.conStartPosx , self.conStartPosy- self.imgConfetti.get_height()+300))
+        screen.blit(self.imgConfetti, (self.conStartPosx , self.conStartPosy- self.imgConfetti.get_height())) #+int(300*0.625)))
 
 
-    def update(self):
+    def update(self, dt):
         
-        wheelPack.update()
-        truckPack.update()
-        bearingsDisp.update()
-        boardDeckDisp.update()
+        wheelPack.update(dt)
+        truckPack.update(dt)
+        bearingsDisp.update(dt)
+        boardDeckDisp.update(dt)
         cashDisp.update()
 
         screen.blit(self.wheelCount, self.wheelCountRect)
@@ -1446,7 +1453,7 @@ class SpecialItemDisp():
         #if win condition is met
         if completeDeck.itemCount == 0:
             # youWinButton.update()
-            self.drawConfetti()
+            self.drawConfetti(dt)
             # print("you win!!!")
 
         self.reset()
@@ -1665,12 +1672,11 @@ while running:
         world.draw()
         # NPC1.update()
         bgPowerLines.draw() #placed after npc to hide him behind the power lines
-        # specialItemDisp.update()
+        specialItemDisp.update(dt)
         obstacle1.draw()
         cash.update()
         player.update(dt)
         displayScore()
-        # wheel.draw(dt)
 
         #randomly spawn special items so it feels more random and unique    
         specialItemSpawnInt = random.randint(0, len(spawnSpecialItemList)-1)
@@ -1694,9 +1700,10 @@ while running:
                     specialItemSpawnCounter = 0
 
                 
-        if finalSpecialItemCount() == totalSpecialPartsList(): #should be 15 items
+        if finalSpecialItemCount() == 1:#totalSpecialPartsList(): #should be 15 items
             # print("Complete Deck time!")
-            completeDeck.update()
+            if completeDeck.itemCount != 0:
+                completeDeck.update(dt)
 
         #LOSE CONDITION:    
         if player.loseConditionBool == True:
