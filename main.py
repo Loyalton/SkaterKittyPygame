@@ -1159,157 +1159,157 @@ class Obstacles():
 #         # self.playerInput()
 #         self.draw()
              
-# class SkateParts():
-#     def __init__(self, imgIndexOG, itemCount, scaleNum = 1/10, staticMotion=False, rotate = False):
-#         self.imgIndexOG = imgIndexOG
-#         self.itemCountOG = itemCount
-#         self.scaleNum = scaleNum
-#         self.angle = 0
-#         self.staticMotion = staticMotion
-#         self.reset()
+class SkateParts():
+    def __init__(self, imgIndexOG, itemCount, scaleNum = 1/10, staticMotion=False, rotate = False):
+        self.imgIndexOG = imgIndexOG
+        self.itemCountOG = itemCount
+        self.scaleNum = scaleNum
+        self.angle = 0
+        self.staticMotion = staticMotion
+        self.reset()
 
-#     def reset(self):
-#         # self.img = [
-#         #     pg.image.load("graphics/wheel.png").convert_alpha(),
-#         #     pg.image.load("graphics/wheelPack.png").convert_alpha(),
-#         #     pg.image.load("graphics/trucks.png").convert_alpha(),
-#         #     pg.image.load("graphics/truckPack.png").convert_alpha(),
-#         #     pg.image.load("graphics/bearings.png").convert_alpha(),
-#         #     pg.image.load("graphics/boardDeck.png").convert_alpha(),
-#         #     pg.image.load("graphics/boardSideViewL.png").convert_alpha(),
-#         #     pg.image.load("graphics/boardGripTape.png").convert_alpha(),
-#         #     pg.image.load("graphics/completeDeck.png").convert_alpha(),
-#         #     pg.image.load("graphics/boardSideViewR.png").convert_alpha()
+    def reset(self):
+        # self.img = [
+        #     pg.image.load("graphics/wheel.png").convert_alpha(),
+        #     pg.image.load("graphics/wheelPack.png").convert_alpha(),
+        #     pg.image.load("graphics/trucks.png").convert_alpha(),
+        #     pg.image.load("graphics/truckPack.png").convert_alpha(),
+        #     pg.image.load("graphics/bearings.png").convert_alpha(),
+        #     pg.image.load("graphics/boardDeck.png").convert_alpha(),
+        #     pg.image.load("graphics/boardSideViewL.png").convert_alpha(),
+        #     pg.image.load("graphics/boardGripTape.png").convert_alpha(),
+        #     pg.image.load("graphics/completeDeck.png").convert_alpha(),
+        #     pg.image.load("graphics/boardSideViewR.png").convert_alpha()
 
-#         # ]
+        # ]
 
-#         # self.imgIndex 
-#         self.imgSelect = self.imgIndexOG
+        # self.imgIndex 
+        self.imgSelect = self.imgIndexOG
 
-#         self.imgSize = self.imgSelect.get_size()  # Original image size
-#         new_width = int(self.imgSize[0] * self.scaleNum * 0.625)
-#         new_height = int(self.imgSize[1] * self.scaleNum * 0.625)
-#         self.imgScale = (new_width, new_height)
+        self.imgSize = self.imgSelect.get_size()  # Original image size
+        new_width = int(self.imgSize[0] * self.scaleNum * 0.625)
+        new_height = int(self.imgSize[1] * self.scaleNum * 0.625)
+        self.imgScale = (new_width, new_height)
     
-#         self.surf = pg.transform.smoothscale(self.imgSelect, self.imgScale)
-#         self.rect = self.surf.get_rect() #setting the bottom mid to a specific place dictated by start positions above
+        self.surf = pg.transform.smoothscale(self.imgSelect, self.imgScale)
+        self.rect = self.surf.get_rect() #setting the bottom mid to a specific place dictated by start positions above
         
-#         #random placement of item within range
-#         self.randintx = random.randint(width, width*2)
-#         self.randInty = random.randint(int(height*1/6), int(height*2/6))
-#         self.randInt = random.randint(3, 6) #in use for random x spawning
+        #random placement of item within range
+        self.randintx = random.randint(width, width*2)
+        self.randInty = random.randint(int(height*1/6), int(height*2/6))
+        self.randInt = random.randint(3, 6) #in use for random x spawning
 
-#         self.rect.midtop = (self.randintx, self.randInty)
-#         # self.rect.center = (width/2, height/2)
+        self.rect.midtop = (self.randintx, self.randInty)
+        # self.rect.center = (width/2, height/2)
     
-#         self.moveBool = False
-#         self.rotateBool = False
-#         self.rotateCount = 0
-#         self.rotateList = [0]
-#         self.flipCount = 0
-#         self.flipList = [2]
-#         self.flipBool = False
-#         self.flip_x = 0  
-#         self.flipTimeNum = 50      
+        self.moveBool = False
+        self.rotateBool = False
+        self.rotateCount = 0
+        self.rotateList = [0]
+        self.flipCount = 0
+        self.flipList = [2]
+        self.flipBool = False
+        self.flip_x = 0  
+        self.flipTimeNum = 50      
 
 
-#         #count how many of the item are collected
-#         self.itemCount = self.itemCountOG
-#         # print(self.itemCount)
-#         self.finalItemcount = 0 #self.itemCountOG - self.itemCount
-#         self.spawnItem = True
-#         self.spawnNewTrigger = False
-#         self.collectSoundBool = False
+        #count how many of the item are collected
+        self.itemCount = self.itemCountOG
+        # print(self.itemCount)
+        self.finalItemcount = 0 #self.itemCountOG - self.itemCount
+        self.spawnItem = True
+        self.spawnNewTrigger = False
+        self.collectSoundBool = False
 
-#     def trackItem(self):
-#         # self.finalItemcount = self.itemCountOG - self.itemCount
-#         "when ready uncomment"
-#         if player.readyJumpBool == True:
-#             self.collectSoundBool = False
-#         if self.staticMotion == False:
+    def trackItem(self):
+        # self.finalItemcount = self.itemCountOG - self.itemCount
+        "when ready uncomment"
+        if player.readyJumpBool == True:
+            self.collectSoundBool = False
+        if self.staticMotion == False:
 
-#             if player.playerRect.colliderect(self.rect):
-#                 self.rect.midbottom = (0,-50)
+            if player.playerRect.colliderect(self.rect):
+                self.rect.midbottom = (0,-50)
                 
-#                 self.itemCount -= 1
-#                 self.finalItemcount += 1
+                self.itemCount -= 1
+                self.finalItemcount += 1
 
-#                 if self.collectSoundBool == False:
-#                     # specialCollectSound.play()
-#                     # dorBailVoice.play()
-#                     pass
-#                 self.collectSoundBool = True #makes it so only sets loop one time
+                if self.collectSoundBool == False:
+                    # specialCollectSound.play()
+                    # dorBailVoice.play()
+                    pass
+                self.collectSoundBool = True #makes it so only sets loop one time
                 
                 
-#                 # self.reset()
-#                 # print(self.itemCount)
-#             if self.itemCount == 0:
-#                 self.spawnItem = False
-#                 #make item no longer spawn
+                # self.reset()
+                # print(self.itemCount)
+            if self.itemCount == 0:
+                self.spawnItem = False
+                #make item no longer spawn
 
-#             if self.imgIndexOG in self.rotateList:
-#                 self.rotateBool = True
-#             elif self.imgIndexOG in self.flipList:
-#                 self.flipBool = True
+            if self.imgIndexOG in self.rotateList:
+                self.rotateBool = True
+            elif self.imgIndexOG in self.flipList:
+                self.flipBool = True
 
         
             
-#     def update(self):
-#         self.trackItem()
-#         if self.spawnItem == True:
-#             if self.staticMotion == False:
-#                 self.rect.x -= player.dx #adjust this to a global movement to remove wiggle
+    def update(self):
+        self.trackItem()
+        if self.spawnItem == True:
+            if self.staticMotion == False:
+                self.rect.x -= player.dx #adjust this to a global movement to remove wiggle
             
-#             self.randintx = random.randint(player_xPos, width)
-#             self.randinty = random.randint(int(height*1/6), int(height*2/6))
+            self.randintx = random.randint(player_xPos, width)
+            self.randinty = random.randint(int(height*1/6), int(height*2/6))
 
-#             if self.rect.right < -200:
-#                 self.rect.left = width*self.randInt + self.randintx #to give more sense of randomness
-#                 self.rect.top = self.randinty
-#                 # self.spawnNewTrigger = True
-#                 # print("in skateparts update:",self.randinty)
+            if self.rect.right < -200:
+                self.rect.left = width*self.randInt + self.randintx #to give more sense of randomness
+                self.rect.top = self.randinty
+                # self.spawnNewTrigger = True
+                # print("in skateparts update:",self.randinty)
 
-#             # #later change this section to only save once the game has ended then update the endScreen()
-#             # self.lines = str(self.finalItemcount)
-#             # if gameActive == True:
-#             #     with open(f"saveParts{self.imgIndex}.txt", mode="w", encoding="utf-8") as f:
-#             #         self.lines = f.writelines(self.lines)
+            # #later change this section to only save once the game has ended then update the endScreen()
+            # self.lines = str(self.finalItemcount)
+            # if gameActive == True:
+            #     with open(f"saveParts{self.imgIndex}.txt", mode="w", encoding="utf-8") as f:
+            #         self.lines = f.writelines(self.lines)
             
-#             self.draw()
+            self.draw()
 
-#     def rotateItem(self):
-#         self.rotateCount +=1
-#         if self.rotateBool == True:
-#             if self.rotateCount >=5:
-#                 self.angle += 90 #for some reason this also makes the image change size if smaller? BUG
-#                 self.currPosRot = self.rect.midbottom
-#                 rotatedSurf = pg.transform.rotate(self.imgSelect, self.angle)  #rotate og image so doesn't get blurry
-#                 self.surf = pg.transform.smoothscale(rotatedSurf, self.imgScale)  #scale image again
-#                 self.rect = self.surf.get_rect()
-#                 self.rect.midbottom = self.currPosRot
-#                 self.rotateCount = 0
+    def rotateItem(self):
+        self.rotateCount +=1
+        if self.rotateBool == True:
+            if self.rotateCount >=5:
+                self.angle += 90 #for some reason this also makes the image change size if smaller? BUG
+                self.currPosRot = self.rect.midbottom
+                rotatedSurf = pg.transform.rotate(self.imgSelect, self.angle)  #rotate og image so doesn't get blurry
+                self.surf = pg.transform.smoothscale(rotatedSurf, self.imgScale)  #scale image again
+                self.rect = self.surf.get_rect()
+                self.rect.midbottom = self.currPosRot
+                self.rotateCount = 0
     
-#     def flipItem(self):
-#         self.flipCount +=1        
-#         if self.flipBool == True:
-#             if self.flipCount >=self.flipTimeNum*2:
-#                 self.flip_x = 1
-#                 self.flipCount = 0
-#             elif self.flipCount >= self.flipTimeNum:
-#                 self.flip_x = 0    
-#             self.currPosRot = self.rect.midbottom
-#             rotatedSurf = pg.transform.flip(self.imgSelect, self.flip_x, 0)  #rotate og image so doesn't get blurry
-#             self.surf = pg.transform.smoothscale(rotatedSurf, self.imgScale)  #scale image again
-#             self.rect = self.surf.get_rect()
-#             self.rect.midbottom = self.currPosRot                         
+    def flipItem(self):
+        self.flipCount +=1        
+        if self.flipBool == True:
+            if self.flipCount >=self.flipTimeNum*2:
+                self.flip_x = 1
+                self.flipCount = 0
+            elif self.flipCount >= self.flipTimeNum:
+                self.flip_x = 0    
+            self.currPosRot = self.rect.midbottom
+            rotatedSurf = pg.transform.flip(self.imgSelect, self.flip_x, 0)  #rotate og image so doesn't get blurry
+            self.surf = pg.transform.smoothscale(rotatedSurf, self.imgScale)  #scale image again
+            self.rect = self.surf.get_rect()
+            self.rect.midbottom = self.currPosRot                         
 
-#     def draw(self):
-#         if self.rotateBool == True:
-#             self.rotateItem()
-#         elif self.flipBool == True:
-#             self.flipItem()
-#         screen.blit(self.surf, self.rect)
-#         # pg.draw.rect(surface=screen, color="red", rect=self.rect, width= 2)
+    def draw(self):
+        if self.rotateBool == True:
+            self.rotateItem()
+        elif self.flipBool == True:
+            self.flipItem()
+        screen.blit(self.surf, self.rect)
+        # pg.draw.rect(surface=screen, color="red", rect=self.rect, width= 2)
 
 class Cash():
     def __init__(self, staticMove = False):
@@ -1381,74 +1381,74 @@ class Cash():
             
         self.draw()
         
-# class SpecialItemDisp():
-#     def __init__(self, specialItemList):
-#         spawnSpecialItemList
-#         self.conStartPosx = 0
-#         self.conStartPosy = 0
-#         self.winButtonAnimationCounter = 0
-#         self.animationLimitNum = 50
-#         self.reset()
-#     def reset(self):
-#         cashDisp.rect.center = (width*1/6, 100 *0.625)
-#         wheelPack.rect.center = (width*2/6, 100 *0.625)
-#         truckPack.rect.center = (width*3/6, 100 *0.625)
-#         bearingsDisp.rect.center = (width*4/6, 100 *0.625)
-#         boardDeckDisp.rect.center = (width*5/6, 100 *0.625)
+class SpecialItemDisp():
+    def __init__(self, specialItemList = None):
+        # spawnSpecialItemList
+        self.conStartPosx = 0
+        self.conStartPosy = 0
+        self.winButtonAnimationCounter = 0
+        self.animationLimitNum = 50
+        self.reset()
+    def reset(self):
+        cashDisp.rect.center = (width*1/6, 100 *0.625)
+        wheelPack.rect.center = (width*2/6, 100 *0.625)
+        truckPack.rect.center = (width*3/6, 100 *0.625)
+        bearingsDisp.rect.center = (width*4/6, 100 *0.625)
+        boardDeckDisp.rect.center = (width*5/6, 100 *0.625)
 
-#         self.cashCount = textFont1.render(f': ${cash.cashcount}', True, ("black"))
-#         self.cashCountRect = self.cashCount.get_rect(center = (int(width*1/6 +80*0.625), 100 *0.625))
+        self.cashCount = textFont1.render(f': ${cash.cashcount}', True, ("black"))
+        self.cashCountRect = self.cashCount.get_rect(center = (int(width*1/6 +80*0.625), 100 *0.625))
 
-#         self.wheelCount = textFont1.render(f': {wheel.finalItemcount}/4', True, ("black"))
-#         self.wheelCountRect = self.wheelCount.get_rect(center = (width*2/6 +80 *0.625, 100 *0.625))
+        self.wheelCount = textFont1.render(f': {wheel.finalItemcount}/4', True, ("black"))
+        self.wheelCountRect = self.wheelCount.get_rect(center = (width*2/6 +80 *0.625, 100 *0.625))
 
-#         self.truckCount = textFont1.render(f': {trucks.finalItemcount}/2', True, ("black"))
-#         self.truckCountRect = self.truckCount.get_rect(center = (width*3/6 +80 *0.625, 100 *0.625))
+        self.truckCount = textFont1.render(f': {trucks.finalItemcount}/2', True, ("black"))
+        self.truckCountRect = self.truckCount.get_rect(center = (width*3/6 +80 *0.625, 100 *0.625))
 
-#         self.bearingCount = textFont1.render(f': {bearings.finalItemcount}/8', True, ("black"))
-#         self.bearingCountRect = self.bearingCount.get_rect(center = (width*4/6 +80 *0.625, 100 *0.625))
+        self.bearingCount = textFont1.render(f': {bearings.finalItemcount}/8', True, ("black"))
+        self.bearingCountRect = self.bearingCount.get_rect(center = (width*4/6 +80 *0.625, 100 *0.625))
 
-#         self.boardDeckCount = textFont1.render(f': {boardDeck.finalItemcount}/1', True, ("black"))
-#         self.boardCountRect = self.boardDeckCount.get_rect(center = (width*5/6 +80 *0.625, 100 *0.625))
+        self.boardDeckCount = textFont1.render(f': {boardDeck.finalItemcount}/1', True, ("black"))
+        self.boardCountRect = self.boardDeckCount.get_rect(center = (width*5/6 +80 *0.625, 100 *0.625))
 
-#         self.winTextSurf = textFont1.render('You Win!!!', True, ("green"))
-#         self.winTextRect = self.winTextSurf.get_rect(center = (width/2 , 200 *0.625))
+        self.winTextSurf = textFont1.render('You Win!!!', True, ("green"))
+        self.winTextRect = self.winTextSurf.get_rect(center = (width/2 , 200 *0.625))
 
-#         self.imgConfetti = pg.image.load("graphics/winConfetti.png").convert_alpha()
+        self.imgConfetti = pg.image.load("graphics/winConfetti.png").convert_alpha()
 
-#         self.imgRect = self.imgConfetti.get_rect()
+        self.imgRect = self.imgConfetti.get_rect()
         
 
-#     def drawConfetti(self):
-#         self.conStartPosy += 1
-#         # print(self.conStartPosy)
-#         if self.conStartPosy >= self.imgConfetti.get_height()-300:
-#             self.conStartPosy = 0
-#         screen.blit(self.imgConfetti, (self.conStartPosx , self.conStartPosy, self.imgRect.w, self.imgRect.h))
-#         screen.blit(self.imgConfetti, (self.conStartPosx , self.conStartPosy- self.imgConfetti.get_height()+300))
+    def drawConfetti(self):
+        self.conStartPosy += 1
+        # print(self.conStartPosy)
+        if self.conStartPosy >= self.imgConfetti.get_height()-300:
+            self.conStartPosy = 0
+        screen.blit(self.imgConfetti, (self.conStartPosx , self.conStartPosy, self.imgRect.w, self.imgRect.h))
+        screen.blit(self.imgConfetti, (self.conStartPosx , self.conStartPosy- self.imgConfetti.get_height()+300))
 
 
-#     def update(self):
+    def update(self):
         
-#         wheelPack.update()
-#         truckPack.update()
-#         bearingsDisp.update()
-#         boardDeckDisp.update()
-#         cashDisp.update()
+        wheelPack.update()
+        truckPack.update()
+        bearingsDisp.update()
+        boardDeckDisp.update()
+        cashDisp.update()
 
-#         screen.blit(self.wheelCount, self.wheelCountRect)
-#         screen.blit(self.truckCount, self.truckCountRect)
-#         screen.blit(self.bearingCount, self.bearingCountRect)
-#         screen.blit(self.boardDeckCount, self.boardCountRect)
-#         screen.blit(self.cashCount, self.cashCountRect)
+        screen.blit(self.wheelCount, self.wheelCountRect)
+        screen.blit(self.truckCount, self.truckCountRect)
+        screen.blit(self.bearingCount, self.bearingCountRect)
+        screen.blit(self.boardDeckCount, self.boardCountRect)
+        screen.blit(self.cashCount, self.cashCountRect)
 
-#         #if win condition is met
-#         if completeDeck.itemCount == 0:
-#             # youWinButton.update()
-#             self.drawConfetti()
-#             # print("you win!!!")
+        #if win condition is met
+        if completeDeck.itemCount == 0:
+            # youWinButton.update()
+            self.drawConfetti()
+            # print("you win!!!")
 
-#         self.reset()
+        self.reset()
 
 #timers and ticks
 start_ticks = pg.time.get_ticks()
@@ -1538,53 +1538,53 @@ cash = Cash()
 cashDisp = Cash(True)
 
 # #skateparts
-# wheel = SkateParts(skatepart_imgs[0], 4)
-# wheelPack = SkateParts(skatepart_imgs[1], 1, 1/18, True)
-# trucks = SkateParts(skatepart_imgs[2], 2) 
-# truckPack = SkateParts(skatepart_imgs[3],1, 1/18, True)
-# bearings = SkateParts(skatepart_imgs[4], 8)
-# bearingsDisp = SkateParts(skatepart_imgs[4], 1, 1/18, True)
-# boardDeck = SkateParts(skatepart_imgs[5], 1, 1/14)
-# boardDeckDisp = SkateParts(skatepart_imgs[5], 1, 1/18, True)
-# boardSideLDisp = SkateParts(skatepart_imgs[6], 1, 1/8, True)
-# boardSideRDisp = SkateParts(skatepart_imgs[9], 1, 1/8, True)
-# boardGripTapeDisp = SkateParts(skatepart_imgs[7], 1, 1/8, True)
-# completeDeckDisp = SkateParts(skatepart_imgs[8], 1, 1/8, True)
-# completeDeck = SkateParts(skatepart_imgs[8], 1)
+wheel = SkateParts(skatepart_imgs[0], 4)
+wheelPack = SkateParts(skatepart_imgs[1], 1, 1/18, True)
+trucks = SkateParts(skatepart_imgs[2], 2) 
+truckPack = SkateParts(skatepart_imgs[3],1, 1/18, True)
+bearings = SkateParts(skatepart_imgs[4], 8)
+bearingsDisp = SkateParts(skatepart_imgs[4], 1, 1/18, True)
+boardDeck = SkateParts(skatepart_imgs[5], 1, 1/14)
+boardDeckDisp = SkateParts(skatepart_imgs[5], 1, 1/18, True)
+boardSideLDisp = SkateParts(skatepart_imgs[6], 1, 1/8, True)
+boardSideRDisp = SkateParts(skatepart_imgs[9], 1, 1/8, True)
+boardGripTapeDisp = SkateParts(skatepart_imgs[7], 1, 1/8, True)
+completeDeckDisp = SkateParts(skatepart_imgs[8], 1, 1/8, True)
+completeDeck = SkateParts(skatepart_imgs[8], 1)
 
 
-# specialItemSpawnCounter = 0 #used to make a timer to spawn them more sparely
-# spawnSpecialItemBool = True
-# spawnSpecialItemList = [wheel,
-#                         trucks,
-#                         bearings,
-#                         boardDeck
-#                         ]
+specialItemSpawnCounter = 0 #used to make a timer to spawn them more sparely
+spawnSpecialItemBool = True
+spawnSpecialItemList = [wheel,
+                        trucks,
+                        bearings,
+                        boardDeck
+                        ]
 
 # #to display tracking during game on screen
-# specialItemDisp = SpecialItemDisp(spawnSpecialItemList)
+specialItemDisp = SpecialItemDisp(spawnSpecialItemList)
 
-# def finalSpecialItemCount():
-#     itemCountList = [wheel.finalItemcount,
-#                     trucks.finalItemcount,
-#                     bearings.finalItemcount,
-#                     boardDeck.finalItemcount
-#                     # completeDeck.finalItemcount
+def finalSpecialItemCount():
+    itemCountList = [wheel.finalItemcount,
+                    trucks.finalItemcount,
+                    bearings.finalItemcount,
+                    boardDeck.finalItemcount
+                    # completeDeck.finalItemcount
 
-#                     ]
-#     finalSpecialItemCount = sum(itemCountList)
-#     return finalSpecialItemCount
+                    ]
+    finalSpecialItemCount = sum(itemCountList)
+    return finalSpecialItemCount
 
-# def totalSpecialPartsList():
-#     itemCountList = [wheel.itemCountOG,
-#                     trucks.itemCountOG,
-#                     bearings.itemCountOG,
-#                     boardDeck.itemCountOG
-#                     # completeDeck.itemCountOG
+def totalSpecialPartsList():
+    itemCountList = [wheel.itemCountOG,
+                    trucks.itemCountOG,
+                    bearings.itemCountOG,
+                    boardDeck.itemCountOG
+                    # completeDeck.itemCountOG
 
-#                     ]
-#     partsList = sum(itemCountList)
-#     return partsList
+                    ]
+    partsList = sum(itemCountList)
+    return partsList
 
 
 #debugging delete later:
@@ -1670,31 +1670,31 @@ while running:
         player.update(dt)
         displayScore()
 
-        # #randomly spawn special items so it feels more random and unique    
-        # specialItemSpawnInt = random.randint(0, len(spawnSpecialItemList)-1)
-        # if spawnSpecialItemBool == True:
-        #     spawnSpecialItemList[specialItemSpawnInt].update()
-        #     tempInt = specialItemSpawnInt
-        #     spawnSpecialItemBool = False
-        # else:
-        #     specialItemSpawnCounter += 1*dt
-        #     if spawnSpecialItemList[tempInt].rect.right > 0: #only update if it is on the screen
-        #         spawnSpecialItemList[tempInt].update()
-        #     else:
-        #         spawnSpecialItemList[tempInt].rect.right = -201 #this will trigger the class in the tracking to move it to the right
-        #     if spawnSpecialItemList[tempInt].spawnItem == False: #only false if item count is zero meaning all collected
-        #         spawnSpecialItemBool = True
-        #     if spawnSpecialItemList[tempInt].rect.right <0: #spawnSpecialItemList[tempInt].spawnNewTrigger == True:
-        #         if specialItemSpawnCounter >= 500*dt: #make higher for more sparse spawning
+        #randomly spawn special items so it feels more random and unique    
+        specialItemSpawnInt = random.randint(0, len(spawnSpecialItemList)-1)
+        if spawnSpecialItemBool == True:
+            spawnSpecialItemList[specialItemSpawnInt].update()
+            tempInt = specialItemSpawnInt
+            spawnSpecialItemBool = False
+        else:
+            specialItemSpawnCounter += 1*dt
+            if spawnSpecialItemList[tempInt].rect.right > 0: #only update if it is on the screen
+                spawnSpecialItemList[tempInt].update()
+            else:
+                spawnSpecialItemList[tempInt].rect.right = -201 #this will trigger the class in the tracking to move it to the right
+            if spawnSpecialItemList[tempInt].spawnItem == False: #only false if item count is zero meaning all collected
+                spawnSpecialItemBool = True
+            if spawnSpecialItemList[tempInt].rect.right <0: #spawnSpecialItemList[tempInt].spawnNewTrigger == True:
+                if specialItemSpawnCounter >= 500*dt: #make higher for more sparse spawning
 
-        #             spawnSpecialItemList[specialItemSpawnInt].update()
-        #             spawnSpecialItemBool = True
-        #             specialItemSpawnCounter = 0
+                    spawnSpecialItemList[specialItemSpawnInt].update()
+                    spawnSpecialItemBool = True
+                    specialItemSpawnCounter = 0
 
                 
-        # if finalSpecialItemCount() == totalSpecialPartsList(): #should be 15 items
-        #     # print("Complete Deck time!")
-        #     completeDeck.update()
+        if finalSpecialItemCount() == totalSpecialPartsList(): #should be 15 items
+            # print("Complete Deck time!")
+            completeDeck.update()
 
         #LOSE CONDITION:    
         if player.loseConditionBool == True:
