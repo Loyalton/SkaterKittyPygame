@@ -241,7 +241,7 @@ class Player():
         self.playRolling = False
 
         #temp rect
-        self.tempPosAdj = 20
+        self.tempPosAdj = 20*0.625
         self.tempRectx = pg.rect.Rect(self.playerRect[0]+self.tempPosAdj, self.playerRect[1]-self.tempPosAdj, self.playerRect.w, self.playerRect.h)
         self.tempRectx.bottom = self.playerRect.bottom
 
@@ -622,7 +622,6 @@ class Player():
         if 0 <= new_index < len(self.img):
             self.update_image(new_index, curPos)
 
-    "for some reason could not pass object to draw() would not blit correctly, now done in update_image()" #resolved
     def draw(self, surf, curPOSRect):
         
         "use three lines below to visualize for collision logic" #diasble for final game
