@@ -1333,7 +1333,7 @@ class SkateParts():
         
         #random placement of item within range
         self.randintx = random.randint(width, width*2)
-        self.randInty = random.randint(height*1/6, height*2/6)
+        self.randInty = random.randint(int(height*1/6), int(height*2/6))
         self.randInt = random.randint(3, 6) #in use for random x spawning
 
         self.rect.midtop = (self.randintx, self.randInty)
@@ -1400,7 +1400,7 @@ class SkateParts():
                 self.rect.x -= player.dx #adjust this to a global movement to remove wiggle
             
             self.randintx = random.randint(player_xPos, width)
-            self.randinty = random.randint(height*1/6, height*2/6)
+            self.randinty = random.randint(int(height*1/6), int(height*2/6))
 
             if self.rect.right < -200:
                 self.rect.left = width*self.randInt + self.randintx #to give more sense of randomness
@@ -1509,7 +1509,7 @@ class Cash():
         if self.staticMove == False:
             self.rect.x -= player.dx
             self.randintx = random.randint(player_xPos, width)
-            self.randinty = random.randint(height*2/4, height*2/3)
+            self.randinty = random.randint(int(height*2/4), int(height*2/3))
             
             if self.rect.colliderect(player.playerRect.x +player.dx, player.playerRect.y, player.playerRect.w, player.playerRect.h): #add prediction collision with dx
                 cashSound.play() #delay in sound, clip audio
