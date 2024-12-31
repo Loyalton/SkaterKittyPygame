@@ -13,7 +13,7 @@ import random
 
 
 pg.init()
-# pg.mixer.init()
+pg.mixer.init()
 print("starting")
 # display screen and basic set up
 width = int(1280 *0.625)
@@ -73,6 +73,49 @@ skatepart_imgs = [
     pg.image.load("graphics/completeDeck.png").convert_alpha(),
     pg.image.load("graphics/boardSideViewR.png").convert_alpha()
     ]
+
+button_imgs = [
+    pg.image.load("graphics/playBlueButton3.png").convert_alpha(),
+    pg.image.load("graphics/controlsButton.png").convert_alpha(),
+    pg.image.load("graphics/menuButtonBlue.png").convert_alpha(),
+    pg.image.load("graphics/menuButton.png").convert_alpha(),
+    pg.image.load("graphics/objectiveButton.png").convert_alpha(),
+    pg.image.load("graphics/playAgainButton.png").convert_alpha(),
+    pg.image.load("graphics/youWinButton.png").convert_alpha()
+    # pg.image.load("graphics/youWinButtonY.png").convert_alpha(),
+    # pg.image.load("graphics/youWinButtonB.png").convert_alpha()
+
+    ]
+
+
+# #Import Audio Files:
+# rolling = pg.mixer.Sound("audio/rolling.wav")
+bgMusic = pg.mixer.Sound("audio/RomanoBeatbyLoyalton.ogg")
+ambientSound = pg.mixer.Sound("audio/ambientOutdoorSounds.ogg")
+cashSound = pg.mixer.Sound("audio/cash.ogg")
+#skateboard sounds
+ollieUpSound = pg.mixer.Sound("audio/ollieUp.ogg")
+ollieDownSound = pg.mixer.Sound("audio/ollieDown.ogg")
+rollingSound = pg.mixer.Sound("audio/rollingshort.ogg")
+specialCollectSound = pg.mixer.Sound("audio/specialItemSound.ogg")
+specialCollectSound.set_volume(0.25)
+
+#bail sounds
+livBailVoice = pg.mixer.Sound("audio/livCrashVoice.ogg")
+dorBailVoice = pg.mixer.Sound("audio/dorCrashVoice.ogg")
+boardHitObj = pg.mixer.Sound("audio/boardHitObj.ogg")
+bailSound = pg.mixer.Sound("audio/bailSoundBoard.ogg")
+bailSoundTopple = pg.mixer.Sound("audio/bailSoundBoardTopple.ogg")
+
+grindLand = pg.mixer.Sound("audio/grindLandMetal.ogg")
+grindLandSlide = pg.mixer.Sound("audio/grindLandSlideRail.ogg")
+grindSlide = pg.mixer.Sound("audio/grindSlideMetal.ogg")
+grindPack = [grindLand, grindLandSlide, grindSlide]
+
+# #play sound
+bgMusic.play(-1) #-1 means to loop indefinitely
+ambientSound.play(-1)
+ambientSound.set_volume(0.05)
 
 
 class World():
@@ -281,21 +324,19 @@ class Player():
         if self.dx > 0 and self.inAirBool == False:
             if self.playRolling == False:
                 # rollingSound.set_volume(0.15)
-                # rollingSound.play(-1)  # Play in loop mode
-                pass
+                rollingSound.play(-1)  # Play in loop mode
             self.playRolling = True #makes it so only sets loop one time
-            # rollingSound.set_volume(self.volume/3)
+            rollingSound.set_volume(self.volume/3)
         # elif self.movingLeft == True:
         #     rollingSound.fadeout()
         else:
             if self.playRolling == True:
-                # rollingSound.stop()
-                pass
+                rollingSound.stop()
             self.playRolling = False
                 
 
     def playerInput(self, dt):
-        self.ollieHeight = min(1500*dt-5, player_yPos-(width/2)+4) #ollie height difference based on dt for web(perfer fixed) vesus local (perfer dt)
+        self.ollieHeight = min(1500*dt-4, player_yPos-(width/2)+4) #ollie height difference based on dt for web(perfer fixed) vesus local (perfer dt)
         # self.playerMotion()       
 
         #CONTROLS by USER INPUT
@@ -322,8 +363,8 @@ class Player():
                 self.gravityBool = True
                 # print(self.playerRect.midbottom[1])
                 self.gravity = -self.ollieHeight #25 UNCOMMENT used to be 25 when resolution was full
-                # ollieUpSound.play()
-                # ollieUpSound.set_volume(0.5)
+                ollieUpSound.play()
+                ollieUpSound.set_volume(0.5)
                 self.inAirBool = True
             self.spaceBarHeld = False
         #--------------------------------------------------------
@@ -341,16 +382,15 @@ class Player():
         
         if obstacle1.ObstacleRect.colliderect(self.tempRectx):
             # rollingSound.stop()
-            # print("collided")
             
-            if obstacle1.ObstacleRect.left < self.playerRect.right-25: #adjust num if needed -25 is good
+            if obstacle1.ObstacleRect.left < self.playerRect.right-25*0.625: #adjust num if needed -25 is good
                 pass
 
             elif obstacle1.ObstacleRect.left <= self.playerRect.right:
                 "BAIL IN X POS"
                 # print("BAIL!!!!!!!!!!!!!!!!!!!!!!!")
                 "there may be a condition where this falsely triggers but I think it's ok for now"
-                # rollingSound.stop()
+                rollingSound.stop()
                 self.dx = 0
                 self.loseConditionBool = True
                 # print("loseloselose in x dir", self.loseConditionBool)
@@ -360,12 +400,12 @@ class Player():
                 if self.bailBool == False:
                     # rollingSound.set_volume(0.15)
                     # grindLand.play()
-                    # boardHitObj.play()
-                    # livBailVoice.play()  # Play in loop mode
+                    boardHitObj.play()
+                    livBailVoice.play()  # Play in loop mode
                     # dorBailVoice.play()
                     pass
                 self.bailBool = True #makes it so only sets loop one time
-                # livBailVoice.set_volume(self.volume/2)
+                livBailVoice.set_volume(self.volume/2)
 
             else:
                 self.gravityBool = False 
@@ -412,13 +452,13 @@ class Player():
             #         self.readyJumpBool = True
 
             #     pass
-            if obstacle1.ObstacleRect.top+int(40*0.625) > self.playerRect.bottom > obstacle1.ObstacleRect.top and self.grindKeyBool == True: #used to be 20 no 40
+            if obstacle1.ObstacleRect.top+40*0.625 > self.playerRect.bottom > obstacle1.ObstacleRect.top and self.grindKeyBool == True: #used to be 20 no 40
                 # print("vert")
-                # rollingSound.stop()
+                rollingSound.stop()
                 "grind enable Vertical range "
                 if keys[pg.K_SPACE]:
                     # self.inAirBool = False
-                    # ollieUpSound.play()
+                    ollieUpSound.play()
                     self.gravity = -self.ollieHeight
                     self.current_image_index = 1 #cycle the image index back resolved the bug!
                     self.RailOllie = True #to be able to ollie while on the rail still
@@ -437,17 +477,15 @@ class Player():
                     if self.grindBool == False:
                         # rollingSound.set_volume(0.15)
                         # grindLand.play()
-                        # grindLandSlide.play()  # Play in loop mode
-                        pass
+                        grindLandSlide.play()  # Play in loop mode
                     self.grindBool = True #makes it so only sets loop one time
-                    # grindLandSlide.set_volume(self.volume)
+                    grindLandSlide.set_volume(self.volume)
                 # elif self.movingLeft == True:
                 #     rollingSound.fadeout()
                 else:
                     # print("in else statement")
                     if self.grindBool == True:
-                        # grindLandSlide.stop()
-                        pass
+                        grindLandSlide.stop()
                     self.grindBool = False
                     # self.inAirBool = False
                 
@@ -455,12 +493,12 @@ class Player():
                 # print("in Vert grind range")
             
             else:
-                if self.playerRect.bottom > obstacle1.ObstacleRect.top+int(20*0.625):
+                if self.playerRect.bottom > obstacle1.ObstacleRect.top+20*0.625:
                     "TO DO: 11/10/2024"
                     " find a way to register the range that is out of bounds when exiting the grinding if statement above" #resolved
                     # print("Below grind range")
 
-                    if self.playerRect.left+self.surf.get_width()*int(0.25*0.625) < obstacle1.ObstacleRect.right:
+                    if self.playerRect.left+self.surf.get_width()*0.3< obstacle1.ObstacleRect.right:
                         # print("NOT safe range for exiting grind")
                         self.loseConditionBool = True
                         "ADD BAIL SOUND HERE"
@@ -468,12 +506,11 @@ class Player():
                             # rollingSound.set_volume(0.15)
                             # grindLand.play()
                             # bailSound.play()
-                            # bailSoundTopple.play()
-                            # livBailVoice.play()  # Play in loop mode
+                            bailSoundTopple.play()
+                            livBailVoice.play()  # Play in loop mode
                             # dorBailVoice.play()
-                            pass
                         self.bailBool = True #makes it so only sets loop one time
-                        # livBailVoice.set_volume(self.volume/2)
+                        livBailVoice.set_volume(self.volume/2)
                     else:
                         # print("Out of BAIL range")
                         self.playSound() #play rolling sound after grind logic bug fixed
@@ -484,14 +521,14 @@ class Player():
             #     # print("BAIL!!!")
             #     self.loseConditionBool = True
         else:
-            # grindLandSlide.stop() #needed so when collision is not happening sound is stopped
+            grindLandSlide.stop() #needed so when collision is not happening sound is stopped
             self.grindBool = False
             self.loseConditionBool = False
             pass
 
         if self.loseConditionBool == True:
             # print("BAIL!!!!!")
-            # grindLandSlide.stop()
+            grindLandSlide.stop()
             gameActive = False
             pass
     
@@ -523,8 +560,8 @@ class Player():
                     
                     if self.playerRect.bottom >= player_yPos:
                         self.inAirBool = False 
-                        # ollieDownSound.play()
-                        # ollieDownSound.set_volume(0.5)
+                        ollieDownSound.play()
+                        ollieDownSound.set_volume(0.5)
             self.curPos = self.playerRect.midbottom
             self.change_image(self.current_image_index, self.curPos)
             self.RailOllie = False
@@ -704,461 +741,468 @@ class Obstacles():
         if 0 <= new_index < len(self.img):
             self.update_image(new_index)
 
+class NPC():
+    def __init__(self, x, y):
+
+        self.NPC1List = [
+                    pg.image.load("graphics/NPC1.png").convert_alpha(),
+                    pg.image.load("graphics/NPC2.png").convert_alpha()
+                    ]
+        # self.NPC1_index = 0
+        self.NPCListNew = []
+        self.NPCRectListNew = []
+        for index in range(len(self.NPC1List)):
+            self.NPC1_Select = self.NPC1List[index]
+            scaleNum = 1/25*0.625 #change this to scale original image
+            playerImageSize = self.NPC1_Select.get_size() #(240, 300)
+            self.playerScale = (playerImageSize[0]*scaleNum, playerImageSize[1]*scaleNum)
+            self.playerSize = (self.playerScale) #for rotozoom if you want 2x bigger just a 2, if use scale need tuple (100,100)
+
+            self.NPC = pg.transform.smoothscale(self.NPC1_Select, self.playerSize) #this is my new surface
+            self.NPCListNew.append(self.NPC)
+
+            self.NPCRect = self.NPCListNew[index].get_rect() #setting the bottom mid to a specific place dictated by start positions above
+            self.NPCRect.midbottom = (self.NPCRect.x, height*6/7 -10*0.625)
+            self.NPCRectListNew.append(self.NPCRect)
+        
+        self.startposx = 0
+        self.NPC1 = self.NPCListNew[0]
+        self.NPC1Rect = self.NPCRectListNew[0]
+        self.NPC1Rect.x = x+self.startposx
+        self.NPC1Rect.y = y-2
+        
 
 
-# class NPC():
-#     def __init__(self, x, y):
+        # Time tracking variables
+        #Switch between images
+        self.last_switch_time = pg.time.get_ticks()  # To track when the last image switch happened
+        self.switch_duration = 1000 # x second (for switching)
+        self.normal_duration = 3000  # x seconds (between switches
+        self.switched = False
+
+        # Create bounce effect
+        self.last_switch_time2 = pg.time.get_ticks()
+        self.switch_duration2 = 100  # x second (for switching)
+        self.normal_duration2 = 100 # x seconds (between switches
+        self.switched2 = False
+
+        self.respawned = False
+        self.animationCounter = 0
+
+    def animation(self, dt):
+        #random integer for placement use
+        self.randInt = random.randint(0,3)
+        self.rantIntx = random.randint(player_xPos, width)
+
+        #get the current time in milliseconds
+        current_time = pg.time.get_ticks()
+        # self.animationCounter += 1*dt
+        self.tempPos = self.NPC1Rect.midbottom
+        #if duration x seconds have passed, switch to the second image
+        if not self.switched and current_time - self.last_switch_time > self.normal_duration:
+            self.NPC1 = self.NPCListNew[0]
+            self.NPC1Rect = self.NPC1.get_rect()
+            self.last_switch_time = current_time  # Reset the timer
+            self.switched = True  
+
+        #if duration x seconds has passed in the switched state, return to the first image
+        elif self.switched and current_time - self.last_switch_time > self.switch_duration:
+            self.NPC1 = self.NPCListNew[1]
+            self.NPC1Rect = self.NPC1.get_rect()
+            self.switched = False
+
+        #movement horizontally for npc
+        self.NPC1Rect.midbottom = self.tempPos
+        self.NPC1Rect.right -= abs(player.dx)/6 + 1#self.randInt
+        return self.NPC1, self.NPC1Rect
+        
+    def update(self, dt):
+        retObj = self.animation(dt)      
+        self.NPC1, self.NPC1Rect =retObj[0], retObj[1]
+
+        if self.NPC1Rect.x < -200 and not self.respawned:
+            # Reset NPC position once
+            self.respawned = True
+            self.randInt = random.randint(0, 3)
+            self.rantIntx = random.randint(player_xPos, width)
+            self.NPC1Rect.left = width * (self.randInt + 2) + self.rantIntx
+
+        # Reset the respawn flag once NPC is fully on screen
+        if self.NPC1Rect.left > 0:
+            self.respawned = False
+
+        #draw player onto screen
+        screen.blit(self.NPC1, self.NPC1Rect)
+        # pg.draw.rect(screen, color="red", rect=self.NPC1Rect, width=2)
+        
+class EndScreen():
+
+    def __init__(self):
+        #creating text surfaces to blit later
+        # gameNameSurf = textFont1.render("My Game!", True, 'Black') # second arg is for Anti Aliasing (smoothing edges) set to True or False
+        "maybe not needed use button class instead"
+        self.scalenum = 0.30*0.625
+        self.img = pg.image.load("graphics/statsMenu.png").convert_alpha()
+        self.imgSize = self.img.get_size()
+        self.imgScaled = (self.imgSize[0]*self.scalenum, self.imgSize[1]*self.scalenum)
+        self.statsMenuSurf = pg.transform.smoothscale(self.img, self.imgScaled)
+        self.statsMenuRect = self.statsMenuSurf.get_rect()
+        self.statsMenuRect.center = (250*0.625, height-300*0.625)
+
+
+        self.countEnd = 0
+        self.maxEndCount = 75
+        self.countBool = False
+        self.endBool = False
+        self.endGameTextSurf = textFont1.render("End Game!", True, (0,0,0))
+        self.endGameTextSurf = textFont1.render("End Game!", True, (255,0,0))
+
+        self.blinkTextRect = self.endGameTextSurf.get_rect()
+        self.blinkTextRect.center = (width/2, height/2 -100*0.625)
+        # self.finalScoreText = textFont1.render(f"Final Score: {displayScore()}", True, (255,0,0))
+
+        self.playAgainTextSurf = textFont1.render("Press Enter/Return to play Again?", True, 'Black')
+
+        # creating text rects
+        self.playAgainTextRect = pg.Surface.get_rect(self.playAgainTextSurf)
+        self.playAgainTextRect.center = (width/2, height*3/4)
+
+        #animation counter for complete deck on end screen
+        self.animationCounter = 0
+        self.animationLimitNum = 20
+
+        self.saveBool = False
+        self.lines = ""
+        self.dispScoreBool = False
+
+    def blinkText(self, textSurf, color1= (0,0,0), color2= (255,0,0)):
+        #setup
+        self.blink_Text = textSurf
+        self.blinkColor1 = color1
+        self.blinkColor2 = color2
+
+        #Blinking end text
+        if self.countBool == False:
+            self.countEnd += 1
+        else:
+            self.countEnd -= 1
+        if self.countEnd == self.maxEndCount:
+            self.countBool = True
+        elif 0 < self.countEnd < self.maxEndCount and self.countBool == False:
+            self.endGameTextSurf = textFont1.render(self.blink_Text, True, self.blinkColor1)
+        elif 0 < self.countEnd < self.maxEndCount and self.countBool == True:
+            self.endGameTextSurf = textFont1.render(self.blink_Text, True, self.blinkColor2)
+        elif self.countEnd == 0:
+            self.countBool = False
+            pass
+        blinkingSurf = self.blink_Text
+        return blinkingSurf
     
-#         NPCSurf1 = pg.image.load("graphics/NPC1.png").convert_alpha()
-#         NPCSurf2 = pg.image.load("graphics/NPC2.png").convert_alpha()
-#         self.NPC1List = [NPCSurf1, NPCSurf2]
-#         self.NPC1_index = 0
-#         self.NPC1_Select = self.NPC1List[self.NPC1_index]
+    def saveLog(self):
+        #later change this section to only save once the game has ended then update the endScreen()
 
-#         scaleNum = 1/25 #change this to scale original image
-#         playerImageSize = self.NPC1_Select.get_size() #(240, 300)
-#         self.playerScale = (playerImageSize[0]*scaleNum, playerImageSize[1]*scaleNum)
-#         self.playerSize = (self.playerScale) #for rotozoom if you want 2x bigger just a 2, if use scale need tuple (100,100)
+        if self.saveBool == False:
+            #save special skate parts
+            # for item in range (0, len(spawnSpecialItemList) -1):
+            #     self.lines = str(spawnSpecialItemList[item].finalItemcount)
 
-#         self.NPC1 = pg.transform.smoothscale(self.NPC1_Select, self.playerSize) #this is my new surface
-#         self.NPC1Rect = self.NPC1.get_rect() #setting the bottom mid to a specific place dictated by start positions above
-        
-#         self.startposx = 0
-#         self.NPC1Rect.x = x+self.startposx
-#         self.NPC1Rect.y = y
-#         self.NPC1Rect.midbottom = (self.NPC1Rect.x, height*6/7 -10)
+            #     with open(f"saveParts{spawnSpecialItemList[item].imgIndex}.txt", mode="w", encoding="utf-8") as f:
+            #         self.lines = f.writelines(self.lines)
+            # self.saveBool = True
 
-#         # Time tracking variables
-#         #Switch between images
-#         self.last_switch_time = pg.time.get_ticks()  # To track when the last image switch happened
-#         self.switch_duration = 1000 # x second (for switching)
-#         self.normal_duration = 4000  # x seconds (between switches
-#         self.switched = False
+            # #save cash
+            # self.lines = str(cash.cashcount)
+            # with open("saveCash.txt", mode="w", encoding="utf-8") as f:
+            #     self.lines = f.writelines(self.lines)
 
-#         # Create bounce effect
-#         self.last_switch_time2 = pg.time.get_ticks()
-#         self.switch_duration2 = 100  # x second (for switching)
-#         self.normal_duration2 = 100 # x seconds (between switches
-#         self.switched2 = False
+            # #save final time score
+            # lines = displayScore()
+            # with open("saveScore.txt", mode="w", encoding="utf-8") as f: #mode = "w" is for writing but clears wahatever data was there before
+            #     lines = f.write(lines) #to read a single line
+            #     # lines = f.writelines() #to read multiple lines
 
-#     def animation(self):
-#         #random integer for placement use
-#         self.randInt = random.randint(0,3)
-#         self.rantIntx = random.randint(player_xPos, width)
-
-#         #get the current time in milliseconds
-#         current_time = pg.time.get_ticks()
-
-#         #if duration x seconds have passed, switch to the second image
-#         if not self.switched and current_time - self.last_switch_time > self.normal_duration:
-#             self.NPC1_Select = self.NPC1List[1]  # Switch to the second image
-#             self.NPC1 = pg.transform.smoothscale(self.NPC1_Select, self.playerSize)
-#             self.last_switch_time = current_time  # Reset the timer
-#             self.switched = True  
-
-#         #if duration x seconds has passed in the switched state, return to the first image
-#         elif self.switched and current_time - self.last_switch_time > self.switch_duration:
-#             self.NPC1_Select = self.NPC1List[0]  # Switch back to the first image
-#             self.NPC1 = pg.transform.smoothscale(self.NPC1_Select, self.playerSize)
-#             self.switched = False
-
-#         # #create a bounce effect
-#         "the bounce effect wasn't looking right if he's moving. add if he's static"
-#         # if not self.switched2 and current_time - self.last_switch_time2 > self.normal_duration2:
-#         #     self.NPC1Rect.y = self.NPC1Rect.y+1
-#         #     self.last_switch_time2 = current_time  # Reset the timer
-#         #     self.switched2 = True  # Set the switch flag
-#         # elif self.switched2 and current_time - self.last_switch_time2 > self.switch_duration2:
-#         #     self.NPC1Rect.y = self.NPC1Rect.y-1
-#         #     self.switched2 = False
-#         #     self.last_switch_time2 = current_time
-        
-
-#         # randInt
-
-#         #movement horizontally for npc
-#         self.NPC1Rect.right -= abs(player.dx)/6 + self.randInt
-#         if self.NPC1Rect.x < -200:
-#             self.NPC1Rect.left  = width*(self.randInt+2) + self.rantIntx #resetting npc to random pos to right of screen
-
-#         "could add sound that increases depending on the x position of the rat to play rolling sound"
-
-
-#     def update(self):
-#         self.animation()      
-        
-#         #draw player onto screen
-#         screen.blit(self.NPC1, self.NPC1Rect)
-#         # pg.draw.rect(screen, color="red", rect=self.NPC1Rect, width=2)
-        
-# class EndScreen():
-
-#     def __init__(self):
-#         #creating text surfaces to blit later
-#         # gameNameSurf = textFont1.render("My Game!", True, 'Black') # second arg is for Anti Aliasing (smoothing edges) set to True or False
-#         "maybe not needed use button class instead"
-#         self.scalenum = 0.30
-#         self.img = pg.image.load("graphics/statsMenu.png").convert_alpha()
-#         self.imgSize = self.img.get_size()
-#         self.imgScaled = (self.imgSize[0]*self.scalenum, self.imgSize[1]*self.scalenum)
-#         self.statsMenuSurf = pg.transform.smoothscale(self.img, self.imgScaled)
-#         self.statsMenuRect = self.statsMenuSurf.get_rect()
-#         self.statsMenuRect.center = (250, height-300)
-
-
-#         self.countEnd = 0
-#         self.maxEndCount = 75
-#         self.countBool = False
-#         self.endBool = False
-#         self.endGameTextSurf = textFont1.render("End Game!", True, (0,0,0))
-#         self.endGameTextSurf = textFont1.render("End Game!", True, (255,0,0))
-
-#         self.blinkTextRect = self.endGameTextSurf.get_rect()
-#         self.blinkTextRect.center = (width/2, height/2 -100)
-#         # self.finalScoreText = textFont1.render(f"Final Score: {displayScore()}", True, (255,0,0))
-
-#         self.playAgainTextSurf = textFont1.render("Press Enter/Return to play Again?", True, 'Black')
-
-#         # creating text rects
-#         self.playAgainTextRect = pg.Surface.get_rect(self.playAgainTextSurf)
-#         self.playAgainTextRect.center = (width/2, height*3/4)
-
-#         #animation counter for complete deck on end screen
-#         self.animationCounter = 0
-#         self.animationLimitNum = 20
-
-#         self.saveBool = False
-#         self.lines = ""
-#         self.dispScoreBool = False
-
-#     def blinkText(self, textSurf, color1= (0,0,0), color2= (255,0,0)):
-#         #setup
-#         self.blink_Text = textSurf
-#         self.blinkColor1 = color1
-#         self.blinkColor2 = color2
-
-#         #Blinking end text
-#         if self.countBool == False:
-#             self.countEnd += 1
-#         else:
-#             self.countEnd -= 1
-#         if self.countEnd == self.maxEndCount:
-#             self.countBool = True
-#         elif 0 < self.countEnd < self.maxEndCount and self.countBool == False:
-#             self.endGameTextSurf = textFont1.render(self.blink_Text, True, self.blinkColor1)
-#         elif 0 < self.countEnd < self.maxEndCount and self.countBool == True:
-#             self.endGameTextSurf = textFont1.render(self.blink_Text, True, self.blinkColor2)
-#         elif self.countEnd == 0:
-#             self.countBool = False
-#             pass
-#         blinkingSurf = self.blink_Text
-#         return blinkingSurf
-    
-#     def saveLog(self):
-#         #later change this section to only save once the game has ended then update the endScreen()
-
-#         if self.saveBool == False:
-#             #save special skate parts
-#             # for item in range (0, len(spawnSpecialItemList) -1):
-#             #     self.lines = str(spawnSpecialItemList[item].finalItemcount)
-
-#             #     with open(f"saveParts{spawnSpecialItemList[item].imgIndex}.txt", mode="w", encoding="utf-8") as f:
-#             #         self.lines = f.writelines(self.lines)
-#             # self.saveBool = True
-
-#             # #save cash
-#             # self.lines = str(cash.cashcount)
-#             # with open("saveCash.txt", mode="w", encoding="utf-8") as f:
-#             #     self.lines = f.writelines(self.lines)
-
-#             # #save final time score
-#             # lines = displayScore()
-#             # with open("saveScore.txt", mode="w", encoding="utf-8") as f: #mode = "w" is for writing but clears wahatever data was there before
-#             #     lines = f.write(lines) #to read a single line
-#             #     # lines = f.writelines() #to read multiple lines
-
-#             # with open("saveScore.txt", mode="r", encoding="utf-8") as f: #mode = "r" is for reading saved files you can also open something in a folder with "name_of_folder\save.txt"
-#             #     # lines = f.read(8) #to read a single line if you give it a number in the arguement it gives you a number of characters
-#             #     lines = f.readlines() #to read multiple lines if you give it a number in the arguement up to that number in characters you get the first name up to n name
-#             #     finalscore = lines[0].strip() 
-#                 # print(lines)
-#             # finalScoreText = textFont1.render(f'Final Time: {finalscore}s', True, ("blue"))
+            # with open("saveScore.txt", mode="r", encoding="utf-8") as f: #mode = "r" is for reading saved files you can also open something in a folder with "name_of_folder\save.txt"
+            #     # lines = f.read(8) #to read a single line if you give it a number in the arguement it gives you a number of characters
+            #     lines = f.readlines() #to read multiple lines if you give it a number in the arguement up to that number in characters you get the first name up to n name
+            #     finalscore = lines[0].strip() 
+                # print(lines)
+            # finalScoreText = textFont1.render(f'Final Time: {finalscore}s', True, ("blue"))
             
-#             if self.dispScoreBool == False:
-#                 self.finalscore = displayScore()
-#                 self.dispScoreBool = True
-#             self.finalScoreText = textFont1.render(f'{self.finalscore}', True, ("blue"))
-#             self.finalScoreRect = self.finalScoreText.get_rect(center = (350, height-300))
-#             # screen.blit(finalScoreText, finalScoreRect)
-#             pass
+            if self.dispScoreBool == False:
+                self.finalscore = displayScore()
+                self.dispScoreBool = True
+            self.finalScoreText = textFont1.render(f'{self.finalscore}', True, ("blue"))
+            self.finalScoreRect = self.finalScoreText.get_rect(center = (350*0.625, height-300*0.625))
+            # screen.blit(finalScoreText, finalScoreRect)
+            pass
 
 
 
-#     def update(self):
-#         self.saveLog()
-#         #update pos because main menu moves it out of the way
-#         playButton.buttonRect.center = (width/2, height/2)
+    def update(self, dt):
+        self.saveLog()
+        #update pos because main menu moves it out of the way
+        playButton.buttonRect.center = (width/2, height/2)
 
-#         self.blinkText("END GAME!")    
-#         sky.update()
-#         bgBirds.update()
-#         sky.draw(screen)
-#         bgBirds.draw(screen)
-        
-#         world.draw(screen)
-#         bgPowerLines.draw(screen)
+        self.blinkText("END GAME!")    
+        sky.update()
+        bgBirds.update()
+        sky.draw()
+        bgBirds.draw()
+        world.draw()
+        nPC.update(dt)
+        bgPowerLines.draw()
 
-#         completeDeckDisp.rect.center = (width*4/5, height*3/5)
-#         boardSideLDisp.rect.center = (width*4/5, height*3/5)
-#         boardGripTapeDisp.rect.center = (width*4/5, height*3/5)
-#         boardSideRDisp.rect.center = (width*4/5, height*3/5)
+        completeDeckDisp.rect.center = (width*4/5, height*3/5)
+        boardSideLDisp.rect.center = (width*4/5, height*3/5)
+        boardGripTapeDisp.rect.center = (width*4/5, height*3/5)
+        boardSideRDisp.rect.center = (width*4/5, height*3/5)
 
 
-#         #this is to rotate the complete deck at the end screen but it doesn't do it smoothly but it is fine
-#         self.animationCounter += 1            
-#         if self.animationCounter > self.animationLimitNum*5:
-#             completeDeckDisp.update()
-#             self.animationCounter = self.animationLimitNum #this fixed it to be smoother
-#         elif self.animationCounter > self.animationLimitNum*4:
-#             completeDeckDisp.update()
-#         elif self.animationCounter > self.animationLimitNum*3:
-#             boardSideRDisp.update()
-#         elif self.animationCounter > self.animationLimitNum*2:
-#             boardGripTapeDisp.update()
-#         elif self.animationCounter > self.animationLimitNum*1:
-#             boardSideLDisp.update()
-#         elif self.animationCounter > 0:
-#             completeDeckDisp.update()
-#         else:
-#             pass
+        #this is to rotate the complete deck at the end screen but it doesn't do it smoothly but it is fine
+        self.animationCounter += 1            
+        if self.animationCounter > self.animationLimitNum*5:
+            completeDeckDisp.update(dt)
+            self.animationCounter = self.animationLimitNum #this fixed it to be smoother
+        elif self.animationCounter > self.animationLimitNum*4:
+            completeDeckDisp.update(dt)
+        elif self.animationCounter > self.animationLimitNum*3:
+            boardSideRDisp.update(dt)
+        elif self.animationCounter > self.animationLimitNum*2:
+            boardGripTapeDisp.update(dt)
+        elif self.animationCounter > self.animationLimitNum*1:
+            boardSideLDisp.update(dt)
+        elif self.animationCounter > 0:
+            completeDeckDisp.update(dt)
+        else:
+            pass
 
-#         if playAgainButton.mouseBool == True or keys[pg.K_RETURN] == True or keys[pg.K_KP_ENTER] == True:
-#             #move buttons out of the screen
-#             playAgainButton.buttonRect.bottom = 0 
-#             playButton.buttonRect.bottom = 0 
-#             controlsButton.buttonRect.bottom = 0
-#             menuButton.buttonRect.bottom = 0
-#             objectiveButton.buttonRect.bottom = 0
-#             self.statsMenuRect.bottom = 0
+        if playAgainButton.mouseBool == True or keys[pg.K_RETURN] == True or keys[pg.K_KP_ENTER] == True:
+            #move buttons out of the screen
+            playAgainButton.buttonRect.bottom = 0 
+            playButton.buttonRect.bottom = 0 
+            controlsButton.buttonRect.bottom = 0
+            menuButton.buttonRect.bottom = 0
+            objectiveButton.buttonRect.bottom = 0
+            self.statsMenuRect.bottom = 0
 
-#             mainMenu.menuBool = False
-#             self.endBool = False
-#             gameActive = True
-#             playAgainButton.mouseBool = False
-#             self.dispScoreBool = False
-#             resetALL()
+            mainMenu.menuBool = False
+            self.endBool = False
+            gameActive = True
+            playAgainButton.mouseBool = False
+            self.dispScoreBool = False
+            resetALL()
 
-#         elif menuButton.mouseBool == True:
-#             playButton.buttonRect.bottom = width/2 
-#             playAgainButton.buttonRect.bottom = 0
-#             controlsButton.buttonRect.bottom = height-250
-#             menuButton.buttonRect.bottom = 0
-#             controlsButton.selectBool = False
-#             controlsButton.mouseBool = False
-#             objectiveButton.selectBool = False
-#             objectiveButton.mouseBool = False
-#             self.endBool = False
-#             mainMenu.menuBool = True
-#             menuButton.mouseBool = False
-#             menuButton.selectBool = False
-#             self.dispScoreBool = False
+        elif menuButton.mouseBool == True:
+            playButton.buttonRect.bottom = width/2 
+            playAgainButton.buttonRect.bottom = 0
+            controlsButton.buttonRect.bottom = height-250*0.625
+            menuButton.buttonRect.bottom = 0
+            controlsButton.selectBool = False
+            controlsButton.mouseBool = False
+            objectiveButton.selectBool = False
+            objectiveButton.mouseBool = False
+            self.endBool = False
+            mainMenu.menuBool = True
+            menuButton.mouseBool = False
+            menuButton.selectBool = False
+            self.dispScoreBool = False
             
 
-#         elif menuButton.mouseBool == False:
-#             controlsButton.buttonRect.bottom = 0
-#             objectiveButton.buttonRect.bottom = 0
+        elif menuButton.mouseBool == False:
+            controlsButton.buttonRect.bottom = 0
+            objectiveButton.buttonRect.bottom = 0
 
 
-#             playAgainButton.buttonRect.center = (width/2, height/2)
-#             menuButton.buttonRect.center = (width/2, height/2 +200)
-#             self.statsMenuRect.center = (250, height-300)
-#             menuButton.update()
+            playAgainButton.buttonRect.center = (width/2, height/2)
+            menuButton.buttonRect.center = (width/2, height/2 +200*0.625)
+            self.statsMenuRect.center = (250*0.625, height-300*0.625)
+            menuButton.update()
 
-#             screen.blit(mainMenu.gameNameSurf, mainMenu.mainMenuRect)
-#             screen.blit(self.statsMenuSurf, self.statsMenuRect)
-#             playAgainButton.update()
+            screen.blit(mainMenu.gameNameSurf, mainMenu.mainMenuRect)
+            screen.blit(self.statsMenuSurf, self.statsMenuRect)
+            playAgainButton.update()
 
-#             finalSpecialCount = finalSpecialItemCount() #to get the final count of special parts
+            finalSpecialCount = finalSpecialItemCount() #to get the final count of special parts
 
-#             self.specialItemCount = textFont1.render(f'{finalSpecialCount}/15', True, ("black"))
-#             self.finalCashRect = self.specialItemCount.get_rect(center = (350, height-215))
-#             screen.blit(self.specialItemCount, self.finalCashRect)
+            self.specialItemCount = textFont1.render(f'{finalSpecialCount}/15', True, ("black"))
+            self.finalCashRect = self.specialItemCount.get_rect(center = (350*0.625, height-215*0.625))
+            screen.blit(self.specialItemCount, self.finalCashRect)
 
-#             screen.blit(self.endGameTextSurf, self.blinkTextRect)#(540,300))
+            screen.blit(self.endGameTextSurf, self.blinkTextRect)#(540,300))
 
-#             screen.blit(self.finalScoreText, self.finalScoreRect)
-#             cash.finalScore()
+            screen.blit(self.finalScoreText, self.finalScoreRect)
+            cash.finalScore()
                     
-# class MainMenu():
+class MainMenu():
 
-#     def __init__(self):
-#         self.playTextSurf = textFont1.render("Press Enter/Return to play!", True, 'white')
+    def __init__(self):
+        self.playTextSurf = textFont1.render("Press Enter/Return to play!", True, 'white')
 
-#         #game Name
-#         self.img = pg.image.load("graphics/gameName5.png").convert_alpha()
-#         self.gameNameSurf = pg.transform.rotozoom(self.img, 0, 0.8)
+        #game Name
+        self.img = pg.image.load("graphics/gameName5.png").convert_alpha()
+        self.gameNameSurf = pg.transform.rotozoom(self.img, 0, 0.8*0.625)
 
-#         # controls menu
-#         self.scalenum2 = 0.4
-#         self.img2 = pg.image.load("graphics/controlsMenu.png").convert_alpha()
-#         self.imgSize = self.img2.get_size()
-#         self.imgScaled = (self.imgSize[0]*self.scalenum2, self.imgSize[1]*self.scalenum2)
-#         self.controlsMenuSurf = pg.transform.smoothscale(self.img2, self.imgScaled)
+        # controls menu
+        self.scalenum2 = 0.4*0.625
+        self.img2 = pg.image.load("graphics/controlsMenu.png").convert_alpha()
+        self.imgSize = self.img2.get_size()
+        self.imgScaled = (self.imgSize[0]*self.scalenum2, self.imgSize[1]*self.scalenum2)
+        self.controlsMenuSurf = pg.transform.smoothscale(self.img2, self.imgScaled)
 
-#         # objective menu
-#         self.scalenum3 = 0.4
-#         self.img3 = pg.image.load("graphics/objectiveMenu.png").convert_alpha()
-#         self.imgSize = self.img3.get_size()
-#         self.imgScaled = (self.imgSize[0]*self.scalenum3, self.imgSize[1]*self.scalenum3)
-#         self.objectiveMenuSurf = pg.transform.smoothscale(self.img3, self.imgScaled) #this is better visually
+        # objective menu
+        self.scalenum3 = 0.4*0.625
+        self.img3 = pg.image.load("graphics/objectiveMenu.png").convert_alpha()
+        self.imgSize = self.img3.get_size()
+        self.imgScaled = (self.imgSize[0]*self.scalenum3, self.imgSize[1]*self.scalenum3)
+        self.objectiveMenuSurf = pg.transform.smoothscale(self.img3, self.imgScaled) #this is better visually
 
-#         # creating text rects
-#         self.mainMenuRect = pg.Surface.get_rect(self.gameNameSurf)
-#         self.mainMenuRect.center = (width/2, 150)
+        # creating text rects
+        self.mainMenuRect = pg.Surface.get_rect(self.gameNameSurf)
+        self.mainMenuRect.center = (width/2, 150*0.625)
 
-#         self.controlsRect = pg.Surface.get_rect(self.controlsMenuSurf)
-#         self.controlsRect.center = (width/2, height/2 +100)
+        self.controlsRect = pg.Surface.get_rect(self.controlsMenuSurf)
+        self.controlsRect.center = (width/2, height/2 +100*0.625)
 
-#         self.objectiveRect = pg.Surface.get_rect(self.objectiveMenuSurf)
-#         self.objectiveRect.center = (width/2, height/2 +100)
+        self.objectiveRect = pg.Surface.get_rect(self.objectiveMenuSurf)
+        self.objectiveRect.center = (width/2, height/2 +100*0.625)
 
 
 
-#         self.playTextRect = pg.Surface.get_rect(self.playTextSurf)
-#         self.playTextRect.center = (width/2, height*3/4)
-#         self.menuBool = True
-#         self.gameActive = False
+        self.playTextRect = pg.Surface.get_rect(self.playTextSurf)
+        self.playTextRect.center = (width/2, height*3/4)
+        self.menuBool = False
+        self.gameActive = False
 
-#     def update(self):
-#         # screen.fill(color=(255,255,255))
-#         if self.menuBool == True:
-#             sky.update()
-#             bgBirds.update()
-#             sky.draw(screen)
-#             bgBirds.draw(screen)
-#             world.draw(screen)
-#             bgPowerLines.draw(screen)
-#             screen.blit(self.gameNameSurf, self.mainMenuRect)
+    def update(self):
+        # screen.fill(color=(255,255,255))
+        if self.menuBool == True:
+            sky.update()
+            bgBirds.update()
+            sky.draw()
+            bgBirds.draw()
+            world.draw()
+            bgPowerLines.draw()
+            screen.blit(self.gameNameSurf, self.mainMenuRect)
             
-#             if playButton.mouseBool == True or keys[pg.K_RETURN] == True or keys[pg.K_KP_ENTER] == True:
-#                 #move buttons out of the screen
-#                 playAgainButton.buttonRect.bottom = 0 
-#                 playButton.buttonRect.bottom = 0 
-#                 controlsButton.buttonRect.bottom = 0
-#                 menuButton.buttonRect.bottom = 0
-#                 objectiveButton.buttonRect.bottom = 0
+            if playButton.mouseBool == True or keys[pg.K_RETURN] == True or keys[pg.K_KP_ENTER] == True:
+                #move buttons out of the screen
+                playAgainButton.buttonRect.bottom = 0 
+                playButton.buttonRect.bottom = 0 
+                controlsButton.buttonRect.bottom = 0
+                menuButton.buttonRect.bottom = 0
+                objectiveButton.buttonRect.bottom = 0
 
-#                 self.menuBool = False
-#                 self.gameActive = True
-#                 playButton.mouseBool = False
-#                 resetALL()
+                self.menuBool = False
+                self.gameActive = True
+                playButton.mouseBool = False
+                resetALL()
 
-#             elif menuButton.mouseBool == True:
-#                 playButton.buttonRect.bottom = width/2 
-#                 controlsButton.buttonRect.bottom = height-250
-#                 menuButton.buttonRect.bottom = 0
-#                 controlsButton.selectBool = False
-#                 controlsButton.mouseBool = False
-#                 objectiveButton.selectBool = False
-#                 objectiveButton.mouseBool = False
+            elif menuButton.mouseBool == True:
+                playButton.buttonRect.bottom = width/2 
+                controlsButton.buttonRect.bottom = height-250*0.625
+                menuButton.buttonRect.bottom = 0
+                controlsButton.selectBool = False
+                controlsButton.mouseBool = False
+                objectiveButton.selectBool = False
+                objectiveButton.mouseBool = False
 
-#                 menuButton.mouseBool = False
-#                 # print("here menu")
+                menuButton.mouseBool = False
+                # print("here menu")
 
-#             elif controlsButton.selectBool == True:
-#                 #move buttons out of the screen
-#                 playButton.buttonRect.bottom = 0 
-#                 controlsButton.buttonRect.bottom = 0 
-#                 objectiveButton.buttonRect.bottom = 0
-#                 menuButton.buttonRect.center = (250, height-200)
+            elif controlsButton.selectBool == True:
+                #move buttons out of the screen
+                playButton.buttonRect.bottom = 0 
+                controlsButton.buttonRect.bottom = 0 
+                objectiveButton.buttonRect.bottom = 0
+                menuButton.buttonRect.center = (250*0.625, height-200*0.625)
 
-#                 menuButton.update()
-#                 screen.blit(self.controlsMenuSurf, self.controlsRect)
+                menuButton.update()
+                screen.blit(self.controlsMenuSurf, self.controlsRect)
                 
-#                 # self.menuBool = False
-#                 # self.gameActive = True
-#                 # playButton.mouseBool = False
-#                 pass
+                # self.menuBool = False
+                # self.gameActive = True
+                # playButton.mouseBool = False
+                pass
 
-#             elif objectiveButton.selectBool == True:
-#                 #move buttons out of the screen
-#                 playButton.buttonRect.bottom = 0 
-#                 controlsButton.buttonRect.bottom = 0 
-#                 controlsButton.buttonRect.bottom = 0
-#                 menuButton.buttonRect.center = (250, height-200)
+            elif objectiveButton.selectBool == True:
+                #move buttons out of the screen
+                playButton.buttonRect.bottom = 0 
+                controlsButton.buttonRect.bottom = 0 
+                controlsButton.buttonRect.bottom = 0
+                menuButton.buttonRect.center = (250*0.625, height-200*0.625)
 
-#                 menuButton.update()
-#                 screen.blit(self.objectiveMenuSurf, self.objectiveRect)
+                menuButton.update()
+                screen.blit(self.objectiveMenuSurf, self.objectiveRect)
 
-#             elif controlsButton.mouseBool == False and objectiveButton.mouseBool == False:
-#                 #reset positions of buttons
-#                 playButton.buttonRect.center = (width/2, height/2)
-#                 controlsButton.buttonRect.center = (250, height-200)
-#                 objectiveButton.buttonRect.center = (width-250, height-200)
-#                 menuButton.buttonRect.bottom = 0
+            elif controlsButton.mouseBool == False and objectiveButton.mouseBool == False:
+                #reset positions of buttons
+                playButton.buttonRect.center = (width/2, height/2)
+                controlsButton.buttonRect.center = (250*0.625, height-200*0.625)
+                objectiveButton.buttonRect.center = (width-250*0.625, height-200*0.625)
+                menuButton.buttonRect.bottom = 0
 
 
-#                 # playButton.reset()
-#                 playButton.update()
-#                 controlsButton.update()
-#                 objectiveButton.update()
+                # playButton.reset()
+                playButton.update()
+                controlsButton.update()
+                objectiveButton.update()
 
-# class Button():
-#     def __init__(self, x, y, imgSelect, sizeButton):
-#         self.x = x
-#         self.y = y
-#         self.imgSelect = imgSelect
-#         self.sizeButton = sizeButton
-#         self.reset()
+class Button():
+    def __init__(self, x, y, imgSelect, sizeButton):
+        self.x = x
+        self.y = y
+        self.imgSelect = imgSelect
+        self.sizeButton = sizeButton
+        # self.button_imgs = button_imgs
+        self.reset()
 
-#     def reset(self):
-#         self.img = [
-#             pg.image.load("graphics/playBlueButton3.png"),
-#             pg.image.load("graphics/controlsButton.png"),
-#             pg.image.load("graphics/menuButtonBlue.png").convert_alpha(),
-#             pg.image.load("graphics/menuButton.png").convert_alpha(),
-#             pg.image.load("graphics/objectiveButton.png").convert_alpha(),
-#             pg.image.load("graphics/playAgainButton.png").convert_alpha(),
-#             pg.image.load("graphics/youWinButton.png").convert_alpha(),
-#             pg.image.load("graphics/youWinButtonY.png").convert_alpha(),
-#             pg.image.load("graphics/youWinButtonB.png").convert_alpha()
+    def reset(self):
+        # self.img = [
+        #     pg.image.load("graphics/playBlueButton3.png"),
+        #     pg.image.load("graphics/controlsButton.png"),
+        #     pg.image.load("graphics/menuButtonBlue.png").convert_alpha(),
+        #     pg.image.load("graphics/menuButton.png").convert_alpha(),
+        #     pg.image.load("graphics/objectiveButton.png").convert_alpha(),
+        #     pg.image.load("graphics/playAgainButton.png").convert_alpha(),
+        #     pg.image.load("graphics/youWinButton.png").convert_alpha(),
+        #     pg.image.load("graphics/youWinButtonY.png").convert_alpha(),
+        #     pg.image.load("graphics/youWinButtonB.png").convert_alpha()
 
-#         ]
+        # ]
+        # self.img = self.button_imgs
+        # self.imgIndex = self.imgSelect
+        # self.imgSelect = self.img[self.imgIndex]
 
-#         self.imgIndex = self.imgSelect
-#         self.imgSelect = self.img[self.imgIndex]
-
-#         scaleNum = self.sizeButton #change this to scale original image
-#         self.imgSize = self.imgSelect.get_size() #(240, 300)
-#         self.imgScale = (self.imgSize[0]*scaleNum, self.imgSize[1]*scaleNum)
+        scaleNum = self.sizeButton #change this to scale original image
+        self.imgSize = self.imgSelect.get_size() #(240, 300)
+        self.imgScale = (int(self.imgSize[0]*scaleNum*0.625), int(self.imgSize[1]*scaleNum*0.625))
     
-#         self.button = pg.transform.smoothscale(self.imgSelect, self.imgScale)
-#         self.buttonRect = self.button.get_rect() #setting the bottom mid to a specific place dictated by start positions above
-#         self.buttonRect.center = (self.x, self.y)
+        self.button = pg.transform.smoothscale(self.imgSelect, self.imgScale)
+        self.buttonRect = self.button.get_rect() #setting the bottom mid to a specific place dictated by start positions above
+        self.buttonRect.center = (self.x, self.y)
 
-#         self.mouseBool = False
-#         self.selectBool = False
+        self.mouseBool = False
+        self.selectBool = False
 
-#     def playerInput(self, event): #takes event queue input to use here
-#         #Checking mouse clicks and positions within the event Section
-#         if event.type == pg.MOUSEBUTTONUP: #captures only when it is released once
-#             # print("mouse up")
-#             if event.button == 1 and self.buttonRect.collidepoint(event.pos): #checks if mouse collides with rect
-#                 # print("collide")
-#                 self.mouseBool = True
-#                 if self.mouseBool == True:
-#                     self.selectBool = True
-#         else:
-#             self.mouseBool = False #moved logic to the main menu
-#             pass
+    def playerInput(self, event): #takes event queue input to use here
+        #Checking mouse clicks and positions within the event Section
+        if event.type == pg.MOUSEBUTTONUP: #captures only when it is released once
+            # print("mouse up")
+            if event.button == 1 and self.buttonRect.collidepoint(event.pos): #checks if mouse collides with rect
+                # print("collide")
+                self.mouseBool = True
+                if self.mouseBool == True:
+                    self.selectBool = True
+        else:
+            self.mouseBool = False #moved logic to the main menu
+            pass
 
-#     def draw(self):
-#         screen.blit(self.button, self.buttonRect)
-#         pass
+    def draw(self):
+        screen.blit(self.button, self.buttonRect)
 
-#     def update(self):
-#         # self.playerInput()
-#         self.draw()
+    def update(self):
+        # self.playerInput()
+        self.draw()
              
 class SkateParts():
     def __init__(self, skatepart_imgs, imgIndexOG, itemCount, scaleNum = 1/10, staticMotion=False):
@@ -1238,9 +1282,8 @@ class SkateParts():
                 self.finalItemcount += 1
 
                 if self.collectSoundBool == False:
-                    # specialCollectSound.play()
+                    specialCollectSound.play()
                     # dorBailVoice.play()
-                    pass
                 self.collectSoundBool = True #makes it so only sets loop one time
                 
                 
@@ -1362,7 +1405,7 @@ class Cash():
     
         # self.finalCashText = textFont1.render(f'Cash Collected: ${self.finalCash}', True, ("green"))
         self.finalCashText = textFont1.render(f'${self.cashcount}', True, ("green"))
-        self.finalCashRect = self.finalCashText.get_rect(center = (350, height-260))
+        self.finalCashRect = self.finalCashText.get_rect(center = (350*0.625, height-260*0.625))
         screen.blit(self.finalCashText, self.finalCashRect)
     
     def update(self):
@@ -1372,14 +1415,13 @@ class Cash():
             self.randinty = random.randint(int(height*2/4), int(height*2/3))
             
             if self.rect.colliderect(player.playerRect.x +player.dx, player.playerRect.y, player.playerRect.w, player.playerRect.h): #add prediction collision with dx
-                # cashSound.play() #delay in sound, clip audio
+                cashSound.play() #delay in sound, clip audio
                 self.rect.left = width + self.randintx
                 self.rect.bottom = self.randinty
                 self.cashcount += 1 #add a cash count and load to text after some amount
             if self.rect.right < 0:
                 self.rect.left = width + self.randintx
                 self.rect.bottom = self.randinty
-            
         self.draw()
         
 class SpecialItemDisp():
@@ -1398,8 +1440,8 @@ class SpecialItemDisp():
         self.imgConfetti = pg.transform.smoothscale(self.imgConfetti, self.scaledimg)
 
         self.imgRect = self.imgConfetti.get_rect()
-
         self.reset()
+
     def reset(self):
         cashDisp.rect.center = (width*1/6, 100 *0.625)
         wheelPack.rect.center = (width*2/6, 100 *0.625)
@@ -1425,19 +1467,14 @@ class SpecialItemDisp():
         self.winTextSurf = textFont1.render('You Win!!!', True, ("green"))
         self.winTextRect = self.winTextSurf.get_rect(center = (width/2 , 200 *0.625))
 
-        
-
     def drawConfetti(self, dt):
         self.conStartPosy += 63*dt
-        # print(self.conStartPosy)
         if self.conStartPosy >= self.imgConfetti.get_height(): #-int(300*0.625):
             self.conStartPosy = 0
         screen.blit(self.imgConfetti, (self.conStartPosx , self.conStartPosy, self.imgRect.w, self.imgRect.h))
         screen.blit(self.imgConfetti, (self.conStartPosx , self.conStartPosy- self.imgConfetti.get_height())) #+int(300*0.625)))
 
-
-    def update(self, dt):
-        
+    def update(self, dt):     
         wheelPack.update(dt)
         truckPack.update(dt)
         bearingsDisp.update(dt)
@@ -1452,11 +1489,10 @@ class SpecialItemDisp():
 
         #if win condition is met
         if completeDeck.itemCount == 0:
-            # youWinButton.update()
+            youWinButton.update()
             self.drawConfetti(dt)
-            # print("you win!!!")
-
-        self.reset()
+        if player.playerRect.collidelist(rectsCollideList):
+            self.reset()
 
 #timers and ticks
 start_ticks = pg.time.get_ticks()
@@ -1476,48 +1512,48 @@ def displayScore():
 
     return lines
 
-# def resetALL():
-#     #RESETTING CHARACTER POSITIONS AND ITERERATIONS:
-#     global start_ticks, current_ticks
-#     start_ticks = pg.time.get_ticks()
-#     current_ticks = 0
-#     # player.playerRect.x  = player_xPos
-#     # player.readyJumpBool = False
-#     # player.dx = 0
-#     obstacle1.ObstacleRect.x = width
-#     NPC1.NPC1Rect.x = width
-#     mainMenu.menuBool = False
-#     player.bailBool = False
-#     endScreen.saveBool = False
+def resetALL():
+    #RESETTING CHARACTER POSITIONS AND ITERERATIONS:
+    global start_ticks, current_ticks
+    start_ticks = pg.time.get_ticks()
+    current_ticks = 0
+    # player.playerRect.x  = player_xPos
+    # player.readyJumpBool = False
+    # player.dx = 0
+    obstacle1.ObstacleRect.x = width
+    # NPC1.NPC1Rect.x = width #uncomment
+    mainMenu.menuBool = False
+    player.bailBool = False
+    endScreen.saveBool = False
 
 
-#     #To reset all counts and spawn bools related to special items
-#     "using this instead of reset cause was slowing down the game"
-#     wheel.finalItemcount = 0
-#     wheel.itemCount = wheel.itemCountOG
-#     wheel.spawnItem = True
+    #To reset all counts and spawn bools related to special items
+    "using this instead of reset cause was slowing down the game"
+    wheel.finalItemcount = 0
+    wheel.itemCount = wheel.itemCountOG
+    wheel.spawnItem = True
 
-#     trucks.finalItemcount = 0
-#     trucks.itemCount = trucks.itemCountOG
-#     trucks.spawnItem = True
+    trucks.finalItemcount = 0
+    trucks.itemCount = trucks.itemCountOG
+    trucks.spawnItem = True
 
-#     bearings.finalItemcount = 0
-#     bearings.itemCount = bearings.itemCountOG
-#     bearings.spawnItem = True
+    bearings.finalItemcount = 0
+    bearings.itemCount = bearings.itemCountOG
+    bearings.spawnItem = True
 
-#     boardDeck.finalItemcount = 0
-#     boardDeck.itemCount = boardDeck.itemCountOG
-#     boardDeck.spawnItem = True
+    boardDeck.finalItemcount = 0
+    boardDeck.itemCount = boardDeck.itemCountOG
+    boardDeck.spawnItem = True
 
-#     completeDeck.finalItemcount = 0
-#     completeDeck.itemCount = completeDeck.itemCountOG
-#     completeDeck.spawnItem = True
+    completeDeck.finalItemcount = 0
+    completeDeck.itemCount = completeDeck.itemCountOG
+    completeDeck.spawnItem = True
 
-#     # gameActive = True
-#     # sky.reset()
-#     # world.reset()
-#     player.reset(player_xPos,player_yPos)
-#     cash.reset()
+    # gameActive = True
+    # sky.reset()
+    # world.reset()
+    player.reset(player_xPos,player_yPos)
+    cash.reset()
 
 #---------------------------------------
 
@@ -1528,18 +1564,18 @@ bgPowerLines = World(bg_List[2],0)
 bgBirds = World(bg_List[3],0.55)
 
 player = Player(player_xPos, player_yPos)
-# NPC1 = NPC((width-400)/2,524)
-# endScreen = EndScreen()
-# mainMenu = MainMenu()
+nPC = NPC((width-400*0.625),524*0.625)
+endScreen = EndScreen()
+mainMenu = MainMenu()
 
-# playButton = Button(width/2, height/2, 0, (1/6))
-# playAgainButton = Button(width/2, height/2, 5, (1/3))
-# controlsButton = Button(250, height-200, 1, (1/4))
-# menuButton = Button(250, height-200, 2, (1/6))
-# objectiveButton = Button(width-250, height-200, 4, (1/4))
-# youWinButton = Button(width/2, 200, 6, (1/4))
-# youWinButtonY = Button(width/2, 200, 7, (1/4))
-# youWinButtonB = Button(width/2, 200, 8, (1/4))
+playButton = Button(width/2, height/2, button_imgs[0], (1/6))
+playAgainButton = Button(width/2, height/2, button_imgs[5], (1/3))
+controlsButton = Button(250, height-200, button_imgs[1], (1/4))
+menuButton = Button(250, height-200, button_imgs[2], (1/6))
+objectiveButton = Button(width-250, height-200, button_imgs[4], (1/4))
+youWinButton = Button(width/2, int(200*0.625), button_imgs[6], (1/4))
+# youWinButtonY = Button(width/2, int(200*0.625), button_imgs[7], (1/4))
+# youWinButtonB = Button(width/2, int(200*0.625), button_imgs[8], (1/4))
 
 obstacle1 = Obstacles(width/2, player_yPos)
 cash = Cash()
@@ -1569,6 +1605,15 @@ spawnSpecialItemList = [wheel,
                         boardDeck
                         ]
 
+rectsCollideList = [
+    wheel.rect,
+    trucks.rect,
+    bearings.rect,
+    boardDeck.rect,
+    cash.rect
+]
+
+
 # #to display tracking during game on screen
 specialItemDisp = SpecialItemDisp(spawnSpecialItemList)
 
@@ -1596,22 +1641,24 @@ def totalSpecialPartsList():
 
 
 #debugging delete later:
-gameActive = True
+gameActive = False
+mainMenu.menuBool = True
+# endScreen.endBool = False
 
 while running:
     #so all functions have access to keys presed
     keys = pg.key.get_pressed()
     dt = min(clock.tick(60) / 1000, 0.1)  # Time in seconds since the last frame
-    #ENTER MAIN MENU
     
-    # if mainMenu.menuBool == True:
-    
-    # if mainMenu.menuBool == True and endScreen.endBool == False:
-    #     mainMenu.update() 
-    # elif mainMenu.menuBool == False and endScreen.endBool == False:
-    #     gameActive = True
-    # else:
-    #     pass 
+    # ENTER MAIN MENU    
+    # if mainMenu.menuBool == True: #comment out in final
+    #     mainMenu.update() #comment out in final
+    if mainMenu.menuBool == True and endScreen.endBool == False:
+        mainMenu.update() 
+    elif mainMenu.menuBool == False and endScreen.endBool == False:
+        gameActive = True
+    else:
+        pass 
 
     for event in pg.event.get():
 
@@ -1620,6 +1667,8 @@ while running:
             sys.exit(0) #stops while loop and ends cleanly
         if event.type == pg.KEYDOWN:
             if event.key == pg.K_ESCAPE:
+                bgMusic.stop()
+                ambientSound.stop()
                 pg.quit()
                 sys.exit(0) 
             if event.key == pg.K_m:
@@ -1627,20 +1676,20 @@ while running:
                 #if the menu key is hit then reset all characters and obstacles
                 # grindLandSlide.stop()
                 # rollingSound.stop()
-                # controlsButton.mouseBool = False
-                # mainMenu.menuBool = True
-                # endScreen.endBool = False
-                # gameActive = False #UNCOMMENT
+                controlsButton.mouseBool = False
+                mainMenu.menuBool = True
+                endScreen.endBool = False #og value uncomment
+                gameActive = False #UNCOMMENT
                 obstacle1.ObstacleRect.x = width
                 player.reset(player_xPos,player_yPos)
             pass
 
         #PASS EVENTS TO OTHER OBJECTS IN CLASSES:
-        # playButton.playerInput(event)
-        # playAgainButton.playerInput(event)
-        # controlsButton.playerInput(event)
-        # menuButton.playerInput(event)
-        # objectiveButton.playerInput(event)
+        playButton.playerInput(event)
+        playAgainButton.playerInput(event)
+        controlsButton.playerInput(event)
+        menuButton.playerInput(event)
+        objectiveButton.playerInput(event)
 
         if gameActive == True:
             pass
@@ -1648,7 +1697,7 @@ while running:
         else:
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_RETURN or event.key == pg.K_KP_ENTER:
-                    # resetALL()          
+                    resetALL()          
                     "all the below moved to endScreen() and mainMenu()"          
                     pass
                 pass
@@ -1660,7 +1709,7 @@ while running:
 
         #BLITTING CHARACTERS, BACKGROUND, AND OBJECTS ON THE SCREEN
 
-        #background and text
+        # #background and text
         sky.update()
         bgBirds.update()
         world.update()
@@ -1670,7 +1719,7 @@ while running:
         sky.draw()
         bgBirds.draw()
         world.draw()
-        # NPC1.update()
+        nPC.update(dt)
         bgPowerLines.draw() #placed after npc to hide him behind the power lines
         specialItemDisp.update(dt)
         obstacle1.draw()
@@ -1700,22 +1749,24 @@ while running:
                     specialItemSpawnCounter = 0
 
                 
-        if finalSpecialItemCount() == 1:#totalSpecialPartsList(): #should be 15 items
+        if finalSpecialItemCount() == totalSpecialPartsList(): #should be 15 items
             # print("Complete Deck time!")
             if completeDeck.itemCount != 0:
                 completeDeck.update(dt)
+            if completeDeck.rect.right < 0:
+                completeDeck.rect.right = -201
 
         #LOSE CONDITION:    
         if player.loseConditionBool == True:
             # print ("game false")
-            # gameActive = False
-            # endScreen.endBool = True
+            gameActive = False
+            endScreen.endBool = True
             pass
 
-    # else: #if game is not active do this below
-    #     if endScreen.endBool == True:
-    #         endScreen.update()  
-    #     pass
+    else: #if game is not active do this below
+        if endScreen.endBool == True:
+            endScreen.update(dt)  
+        pass
                     
     #refreshes the screen with a frame rate of 60Hz
     pg.display.flip()
