@@ -236,7 +236,7 @@ class Player():
         self.movingRight = False
         self.movingLeft = False
         self.RailOllie = False
-        self.ollieHeight = 25
+        self.ollieHeight = 23
 
         #bools for Sound
         self.playRolling = False
@@ -616,7 +616,7 @@ class Player():
 
         self.tempRecty = pg.rect.Rect(self.playerRect[0], self.playerRect[1]+self.tempPosAdj, self.playerRect.w, self.playerRect.h)
         self.tempRecty.right = self.playerRect.right-self.tempPosAdj
-        self.tempRecty.bottom = self.playerRect.bottom + self.tempPosAdj
+        self.tempRecty.bottom = self.playerRect.bottom + self.tempPosAdj+5
 
     def change_image(self, new_index, curPos):
         # change image and draw new rect with correct dimensions no squashing or stretch
@@ -686,21 +686,21 @@ class Obstacles():
 
         ]
         # print(len(self.img)-1)
-        self.img_List =[]
-        for index in range(len(self.img)):
-            self.imgSelect = self.img[index]
-            self.scaleNum = 1/6 #change this to scale original image
+        # self.img_List =[]
+        # for index in range(len(self.img)):
+        #     self.imgSelect = self.img[index]
+        #     self.scaleNum = 1/6 #change this to scale original image
 
-            self.imgSize = self.imgSelect.get_size()  # Original image size
-            new_width = int(self.imgSize[0] * self.scaleNum)
-            new_height = int(self.imgSize[1] * self.scaleNum)
-            self.imgScale = (new_width *0.625, new_height *0.625)
+        #     self.imgSize = self.imgSelect.get_size()  # Original image size
+        #     new_width = int(self.imgSize[0] * self.scaleNum)
+        #     new_height = int(self.imgSize[1] * self.scaleNum)
+        #     self.imgScale = (new_width *0.625, new_height *0.625)
         
-            self.Obstacle = pg.transform.smoothscale(self.imgSelect, self.imgScale)
-            self.img_List.append(self.Obstacle)
+        #     self.Obstacle = pg.transform.smoothscale(self.imgSelect, self.imgScale)
+        #     self.img_List.append(self.Obstacle)
 
         self.index = 0
-        self.Obstacle = self.img_List[self.index]
+        self.Obstacle = self.img[self.index]
 
         self.ObstacleRect = self.Obstacle.get_rect() #setting the bottom mid to a specific place dictated by start positions above
         self.ObstacleRect.midbottom = (x,y)
@@ -731,8 +731,8 @@ class Obstacles():
     
     def update_image(self, index):
 
-        self.imgSelect 
-        self.Obstacle = self.img_List[index]
+        # self.imgSelect 
+        self.Obstacle = self.img[index]
         self.ObstacleRect = self.Obstacle.get_rect()
         self.ObstacleRect.midbottom = (width, self.y)
         
@@ -753,13 +753,13 @@ class NPC():
         self.NPCRectListNew = []
         for index in range(len(self.NPC1List)):
             self.NPC1_Select = self.NPC1List[index]
-            scaleNum = 1/25*0.625 #change this to scale original image
-            playerImageSize = self.NPC1_Select.get_size() #(240, 300)
-            self.playerScale = (playerImageSize[0]*scaleNum, playerImageSize[1]*scaleNum)
-            self.playerSize = (self.playerScale) #for rotozoom if you want 2x bigger just a 2, if use scale need tuple (100,100)
+            # scaleNum = 1/25*0.625 #change this to scale original image
+            # playerImageSize = self.NPC1_Select.get_size() #(240, 300)
+            # self.playerScale = (playerImageSize[0]*scaleNum, playerImageSize[1]*scaleNum)
+            # self.playerSize = (self.playerScale) #for rotozoom if you want 2x bigger just a 2, if use scale need tuple (100,100)
 
-            self.NPC = pg.transform.smoothscale(self.NPC1_Select, self.playerSize) #this is my new surface
-            self.NPCListNew.append(self.NPC)
+            # self.NPC = pg.transform.smoothscale(self.NPC1_Select, self.playerSize) #this is my new surface
+            self.NPCListNew.append(self.NPC1_Select)
 
             self.NPCRect = self.NPCListNew[index].get_rect() #setting the bottom mid to a specific place dictated by start positions above
             self.NPCRect.midbottom = (self.NPCRect.x, height*6/7 -10*0.625)
@@ -1669,6 +1669,7 @@ while running:
             if event.key == pg.K_ESCAPE:
                 bgMusic.stop()
                 ambientSound.stop()
+                pg.mixer.stop()
                 pg.quit()
                 sys.exit(0) 
             if event.key == pg.K_m:
