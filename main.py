@@ -132,13 +132,13 @@ class World():
         # SCALE DOWN img:
         "as long as the backgrounds are the same size this is ok if not then need to do logic similar to player animation"
         # self.ratio = 1280*3 = 3840
-        scaleNum = 1/2 #change this to scale original image
-        self.imgSize = self.bgSelect.get_size()
-        self.imgScaled = (self.imgSize[0]*scaleNum *0.625 // 1, self.imgSize[1]*scaleNum *0.625 // 1) #all images should be the same sie or else this wont work
-        img = pg.transform.smoothscale(self.bgSelect, self.imgScaled)
+        # scaleNum = 1/2 #change this to scale original image
+        # self.imgSize = self.bgSelect.get_size()
+        # self.imgScaled = (self.imgSize[0]*scaleNum *0.625 // 1, self.imgSize[1]*scaleNum *0.625 // 1) #all images should be the same sie or else this wont work
+        # img = pg.transform.smoothscale(self.bgSelect, self.imgScaled)
 
         #final after all mods
-        self.background = img
+        self.background = imgSelect
 
         #starting position of background
         self.bgStartPosx = 0 #this will be used to scroll
@@ -192,19 +192,20 @@ class Player():
             pg.image.load("graphics/player4.png").convert_alpha()
         ]
         self.current_image_index = 0
-        self.player_TranformedList = []
+        # self.player_TranformedList = []
 
-        for index in range(len(self.img)):
-            self.imgSelect = self.ollieImages[index] #self.current_image_index
-            self.scaleNum = 1/13 #change this to scale original image
-            self.imgSize = self.imgSelect.get_size()  #original image size
-            new_width = int(self.imgSize[0] * self.scaleNum)
-            new_height = int(self.imgSize[1] * self.scaleNum)
-            self.imgScale = (new_width, new_height)
-            self.player = pg.transform.smoothscale(self.imgSelect, self.imgScale)
-            self.player_TranformedList.append(self.player)
+        # for index in range(len(self.img)):
+        #     self.imgSelect = self.ollieImages[index] #self.current_image_index
+        #     self.scaleNum = 1/13 #change this to scale original image
+        #     self.imgSize = self.imgSelect.get_size()  #original image size
+        #     new_width = int(self.imgSize[0] * self.scaleNum)
+        #     new_height = int(self.imgSize[1] * self.scaleNum)
+        #     self.imgScale = (new_width, new_height)
+        #     self.player = pg.transform.smoothscale(self.imgSelect, self.imgScale)
+        #     self.player_TranformedList.append(self.player)
 
-        self.player = self.player_TranformedList[self.current_image_index]
+        # self.player = self.player_TranformedList[self.current_image_index]
+        self.player = self.img[self.current_image_index]
 
         self.playerRect = self.player.get_rect() #setting the bottom mid to a specific place dictated by start positions above
         self.playerRect.midbottom = (x,y)
@@ -597,13 +598,13 @@ class Player():
         self.imgSelect = self.img[self.imgIndex]
 
         # Scale the selected image
-        self.imgSize = self.imgSelect.get_size()
-        new_width = int(self.imgSize[0] * self.scaleNum*0.625 // 1)
-        new_height = int(self.imgSize[1] * self.scaleNum*0.625 // 1)
-        self.imgScale = (new_width, new_height)
+        # self.imgSize = self.imgSelect.get_size()
+        # new_width = int(self.imgSize[0] * self.scaleNum*0.625 // 1)
+        # new_height = int(self.imgSize[1] * self.scaleNum*0.625 // 1)
+        # self.imgScale = (new_width, new_height)
 
         # scale and also update the rect dimensions based on new loaded image
-        self.surf = self.player = pg.transform.smoothscale(self.imgSelect, self.imgScale)
+        self.surf = self.player = self.imgSelect #pg.transform.smoothscale(self.imgSelect, self.imgScale)
         self.playerRect = self.player.get_rect()
 
         self.playerRect.midbottom = self.curPosPass#(player_xPos, self.currentPos[1])
