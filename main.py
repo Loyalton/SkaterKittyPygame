@@ -71,7 +71,9 @@ skatepart_imgs = [
     pg.image.load("graphics/boardSideViewL.png").convert_alpha(),
     pg.image.load("graphics/boardGripTape.png").convert_alpha(),
     pg.image.load("graphics/completeDeck.png").convert_alpha(),
-    pg.image.load("graphics/boardSideViewR.png").convert_alpha()
+    pg.image.load("graphics/boardSideViewR.png").convert_alpha(),
+    pg.image.load("graphics/bearingsDisp.png").convert_alpha(),
+    pg.image.load("graphics/boardDeckDisp.png").convert_alpha(),
     ]
 
 button_imgs = [
@@ -1233,12 +1235,13 @@ class SkateParts():
         self.imgIndex = self.imgIndexOG
         self.imgSelect = self.skatepart_imgs_List[self.imgIndex]
 
-        self.imgSize = self.imgSelect.get_size()  # Original image size
-        new_width = int(self.imgSize[0] * self.scaleNum * 0.625)
-        new_height = int(self.imgSize[1] * self.scaleNum * 0.625)
-        self.imgScale = (new_width, new_height)
+        # self.imgSize = self.imgSelect.get_size()  # Original image size
+        # new_width = int(self.imgSize[0] * self.scaleNum * 0.625)
+        # new_height = int(self.imgSize[1] * self.scaleNum * 0.625)
+        # self.imgScale = (new_width, new_height)
     
-        self.surf = pg.transform.smoothscale(self.imgSelect, self.imgScale)
+        # self.surf = pg.transform.smoothscale(self.imgSelect, self.imgScale)
+        self.surf = self.imgSelect
         self.rect = self.surf.get_rect() #setting the bottom mid to a specific place dictated by start positions above
         
         #random placement of item within range
@@ -1327,8 +1330,8 @@ class SkateParts():
             if self.rotateCount >=5*dt:
                 self.angle += 90 #for some reason this also makes the image change size if smaller? BUG
                 self.currPosRot = self.rect.midbottom
-                rotatedSurf = pg.transform.rotate(self.imgSelect, self.angle)  #rotate og image so doesn't get blurry
-                self.surf = pg.transform.smoothscale(rotatedSurf, self.imgScale)  #scale image again
+                self.surf = pg.transform.rotate(self.imgSelect, self.angle)  #rotate og image so doesn't get blurry
+                # self.surf = pg.transform.smoothscale(rotatedSurf, self.imgScale)  #scale image again
                 self.rect = self.surf.get_rect()
                 self.rect.midbottom = self.currPosRot
                 self.rotateCount = 0
@@ -1342,8 +1345,8 @@ class SkateParts():
             elif self.flipCount >= 25*dt: #self.flipTimeNum:
                 self.flip_x = 0    
             self.currPosRot = self.rect.midbottom
-            rotatedSurf = pg.transform.flip(self.imgSelect, self.flip_x, 0)  #rotate og image so doesn't get blurry
-            self.surf = pg.transform.smoothscale(rotatedSurf, self.imgScale)  #scale image again
+            self.surf = pg.transform.flip(self.imgSelect, self.flip_x, 0)  #rotate og image so doesn't get blurry
+            # self.surf = pg.transform.smoothscale(rotatedSurf, self.imgScale)  #scale image again
             self.rect = self.surf.get_rect()
             self.rect.midbottom = self.currPosRot                         
 
@@ -1587,9 +1590,9 @@ wheelPack = SkateParts(skatepart_imgs, 1, 1, 1/18, True)
 trucks = SkateParts(skatepart_imgs, 2, 2) 
 truckPack = SkateParts(skatepart_imgs, 3,1, 1/18, True)
 bearings = SkateParts(skatepart_imgs, 4, 8)
-bearingsDisp = SkateParts(skatepart_imgs, 4, 1, 1/18, True)
+bearingsDisp = SkateParts(skatepart_imgs, 10, 1, 1/18, True)
 boardDeck = SkateParts(skatepart_imgs, 5, 1, 1/14)
-boardDeckDisp = SkateParts(skatepart_imgs, 5, 1, 1/18, True)
+boardDeckDisp = SkateParts(skatepart_imgs, 11, 1, 1/18, True)
 boardSideLDisp = SkateParts(skatepart_imgs, 6, 1, 1/8, True)
 boardSideRDisp = SkateParts(skatepart_imgs, 9, 1, 1/8, True)
 boardGripTapeDisp = SkateParts(skatepart_imgs, 7, 1, 1/8, True)
@@ -1667,8 +1670,8 @@ while running:
             sys.exit(0) #stops while loop and ends cleanly
         if event.type == pg.KEYDOWN:
             if event.key == pg.K_ESCAPE:
-                bgMusic.stop()
-                ambientSound.stop()
+                # bgMusic.stop()
+                # ambientSound.stop()
                 pg.mixer.stop()
                 pg.quit()
                 sys.exit(0) 
