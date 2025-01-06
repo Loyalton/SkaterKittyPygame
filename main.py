@@ -225,6 +225,7 @@ class Player():
         self.counterFrame = 0
         self.grindBool = False
         self.bailBool = False
+        self.shiftPressed = False
         self.grindKeyBool = False
         self.loseConditionBool = False
         self.platformBool = False
@@ -239,6 +240,7 @@ class Player():
         self.movingLeft = False
         self.RailOllie = False
         self.ollieHeight = 23
+
 
         #bools for Sound
         self.playRolling = False
@@ -372,7 +374,12 @@ class Player():
             self.spaceBarHeld = False
         #--------------------------------------------------------
 
-        if keys[pg.K_LSHIFT] or keys[pg.K_RSHIFT]:
+        # if keys[pg.K_LSHIFT] or keys[pg.K_RSHIFT]:
+        #     self.grindKeyBool = True
+        # else:
+        #     self.grindKeyBool = False
+
+        if self.shiftPressed:
             self.grindKeyBool = True
         else:
             self.grindKeyBool = False
@@ -630,7 +637,9 @@ class Player():
         "use three lines below to visualize for collision logic" #diasble for final game
         # pg.draw.rect(surface=screen, color="blue", rect=self.tempRectx, width=2)
         # pg.draw.rect(surface=screen, color="green", rect=self.tempRecty, width=2)
-        # pg.draw.rect(screen, (255, 0, 0), self.playerRect, 2) #to visualize the rect around image
+        # if self.shiftPressed:
+        #     pg.draw.rect(screen, (255, 0, 0), self.playerRect, 2) #to visualize the rect around image
+        
 
         screen.blit(surf, curPOSRect)
         
@@ -1651,8 +1660,7 @@ mainMenu.menuBool = True
 while running:
     #so all functions have access to keys presed
     keys = pg.key.get_pressed()
-    dt = min(clock.tick(60) / 1000, 0.1)  # Time in seconds since the last frame
-    
+    dt = min(clock.tick(60) / 1000, 0.05)  # Time in seconds since the last frame
     # ENTER MAIN MENU    
     # if mainMenu.menuBool == True: #comment out in final
     #     mainMenu.update() #comment out in final
@@ -1686,7 +1694,14 @@ while running:
                 gameActive = False #UNCOMMENT
                 obstacle1.ObstacleRect.x = width
                 player.reset(player_xPos,player_yPos)
-            pass
+
+            if event.key in (pg.K_LSHIFT, pg.K_RSHIFT):
+                player.shiftPressed = True
+                
+        elif event.type == pg.KEYUP:
+            if event.key in (pg.K_LSHIFT, pg.K_RSHIFT):
+                player.shiftPressed = False
+
 
         #PASS EVENTS TO OTHER OBJECTS IN CLASSES:
         playButton.playerInput(event)
