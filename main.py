@@ -1,5 +1,5 @@
 import pygame as pg
-import sys
+import sys, os
 import random
 
 
@@ -7,10 +7,20 @@ import random
 # right now it is working push these changes. 12/26/2024
 # To Do:
 #Add collision detection so that the skater can grind the objects
-"Might have to do with the new values. maybe change to integers or add in main menu and other stuff to handle end game stuff"
+"Might have to do with the new values. maybe change to integers or add in main menu and other stuff to handle end game stuff" #mostly fixed with event queue
 #Edit the jump height to be a percentage of what it was with floor division #done
 #fix display issue of items
 
+
+def resource_path(relative_path):
+    """Get the absolute path to a resource, works for Pygbag and local."""
+    try:
+        # For WebAssembly (Pygbag)
+        base_path = sys._MEIPASS
+    except AttributeError:
+        # For local execution
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 pg.init()
 pg.mixer.init()
@@ -36,7 +46,7 @@ pg.display.set_caption("Skater Kitty")
 
 
 #loading all the images
-# disp_icon = pg.image.load("graphics/HeadofKittyBoardBluntLoyalton.png").convert_alpha()
+# disp_icon = pg.image.load(resource_path("graphics/HeadofKittyBoardBluntLoyalton.png")).convert_alpha()
 
 #place images to respective locations
 # pg.display.set_icon(disp_icon) #load it to the display window
@@ -55,48 +65,48 @@ gameActive = False
 
 #Background images:
 bg_List = [
-    pg.image.load("graphics/sky.png").convert_alpha(),
-    pg.image.load("graphics/bgBuildings.png").convert_alpha(),
-    pg.image.load("graphics/bgPowerLines.png").convert_alpha(),
-    pg.image.load("graphics/bgBirds.png").convert_alpha()
+    pg.image.load(resource_path("graphics/sky.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/bgBuildings.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/bgPowerLines.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/bgBirds.png")).convert_alpha()
     ]
 
 skatepart_imgs = [
-    pg.image.load("graphics/wheel.png").convert_alpha(),
-    pg.image.load("graphics/wheelPack.png").convert_alpha(),
-    pg.image.load("graphics/trucks.png").convert_alpha(),
-    pg.image.load("graphics/truckPack.png").convert_alpha(),
-    pg.image.load("graphics/bearings.png").convert_alpha(),
-    pg.image.load("graphics/boardDeck.png").convert_alpha(),
-    pg.image.load("graphics/boardSideViewL.png").convert_alpha(),
-    pg.image.load("graphics/boardGripTape.png").convert_alpha(),
-    pg.image.load("graphics/completeDeck.png").convert_alpha(),
-    pg.image.load("graphics/boardSideViewR.png").convert_alpha(),
-    pg.image.load("graphics/bearingsDisp.png").convert_alpha(),
-    pg.image.load("graphics/boardDeckDisp.png").convert_alpha(),
+    pg.image.load(resource_path("graphics/wheel.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/wheelPack.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/trucks.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/truckPack.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/bearings.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/boardDeck.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/boardSideViewL.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/boardGripTape.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/completeDeck.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/boardSideViewR.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/bearingsDisp.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/boardDeckDisp.png")).convert_alpha(),
     ]
 
 button_imgs = [
-    pg.image.load("graphics/playBlueButton3.png").convert_alpha(),
-    pg.image.load("graphics/controlsButton.png").convert_alpha(),
-    pg.image.load("graphics/menuButtonBlue.png").convert_alpha(),
-    pg.image.load("graphics/menuButton.png").convert_alpha(),
-    pg.image.load("graphics/objectiveButton.png").convert_alpha(),
-    pg.image.load("graphics/playAgainButton.png").convert_alpha(),
-    pg.image.load("graphics/youWinButton.png").convert_alpha()
-    # pg.image.load("graphics/youWinButtonY.png").convert_alpha(),
-    # pg.image.load("graphics/youWinButtonB.png").convert_alpha()
+    pg.image.load(resource_path("graphics/playBlueButton3.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/controlsButton.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/menuButtonBlue.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/menuButton.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/objectiveButton.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/playAgainButton.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/youWinButton.png")).convert_alpha()
+    # pg.image.load(resource_path("graphics/youWinButtonY.png")).convert_alpha(),
+    # pg.image.load(resource_path("graphics/youWinButtonB.png")).convert_alpha()
 
     ]
 
-cashImg = pg.image.load("graphics/cash.png").convert_alpha()
-statsMenuImg = pg.image.load("graphics/statsMenu.png").convert_alpha()
-imgConfetti = pg.image.load("graphics/winConfetti.png").convert_alpha()
+cashImg = pg.image.load(resource_path("graphics/cash.png")).convert_alpha()
+statsMenuImg = pg.image.load(resource_path("graphics/statsMenu.png")).convert_alpha()
+imgConfetti = pg.image.load(resource_path("graphics/winConfetti.png")).convert_alpha()
 
 mainMenuImgs = [
-    pg.image.load("graphics/gameName5.png").convert_alpha(),
-    pg.image.load("graphics/controlsMenu.png").convert_alpha(),
-    pg.image.load("graphics/objectiveMenu.png").convert_alpha(),
+    pg.image.load(resource_path("graphics/gameName5.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/controlsMenu.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/objectiveMenu.png")).convert_alpha(),
 ]
 
 # #Import Audio Files:
@@ -113,7 +123,7 @@ specialCollectSound.set_volume(0.25)
 
 #bail sounds
 livBailVoice = pg.mixer.Sound("audio/livCrashVoice.ogg")
-dorBailVoice = pg.mixer.Sound("audio/dorCrashVoice.ogg")
+# dorBailVoice = pg.mixer.Sound("audio/dorCrashVoice.ogg")
 boardHitObj = pg.mixer.Sound("audio/boardHitObj.ogg")
 bailSound = pg.mixer.Sound("audio/bailSoundBoard.ogg")
 bailSoundTopple = pg.mixer.Sound("audio/bailSoundBoardTopple.ogg")
@@ -197,10 +207,10 @@ class Player():
     def reset(self, x, y):
 
         self.img = self.ollieImages = [
-            pg.image.load("graphics/player1.png").convert_alpha(),
-            pg.image.load("graphics/player2.png").convert_alpha(),
-            pg.image.load("graphics/player3.png").convert_alpha(),
-            pg.image.load("graphics/player4.png").convert_alpha()
+            pg.image.load(resource_path("graphics/player1.png")).convert_alpha(),
+            pg.image.load(resource_path("graphics/player2.png")).convert_alpha(),
+            pg.image.load(resource_path("graphics/player3.png")).convert_alpha(),
+            pg.image.load(resource_path("graphics/player4.png")).convert_alpha()
         ]
         self.current_image_index = 0
         # self.player_TranformedList = []
@@ -683,23 +693,23 @@ class Obstacles():
     def reset(self, x,y):
         self.img = [
             #platforms:
-            # pg.image.load("graphics/blockandstairBlock.png"), # = 0 for list to check platform could use mapping
+            # pg.image.load(resource_path("graphics/blockandstairBlock.png"), # = 0 for list to check platform could use mapping
 
             # regular Obstacles
-            pg.image.load("graphics/rail.png"),
-            pg.image.load("graphics/railTall.png"),
-            pg.image.load("graphics/railLong.png"),
-            pg.image.load("graphics/railLong2x.png"),
-            pg.image.load("graphics/cementBlock.png"),
+            pg.image.load(resource_path("graphics/rail.png")).convert_alpha(),
+            pg.image.load(resource_path("graphics/railTall.png")).convert_alpha(),
+            pg.image.load(resource_path("graphics/railLong.png")).convert_alpha(),
+            pg.image.load(resource_path("graphics/railLong2x.png")).convert_alpha(),
+            pg.image.load(resource_path("graphics/cementBlock.png")).convert_alpha(),
             
-            pg.image.load("graphics/cone.png"),
-            pg.image.load("graphics/mailbox.png"),
-            pg.image.load("graphics/meter.png"),
-            pg.image.load("graphics/bench.png"),
-            pg.image.load("graphics/barrier.png"),
-            pg.image.load("graphics/bigCone.png"),
-            pg.image.load("graphics/hydrant.png"),
-            pg.image.load("graphics/trashCan.png")
+            pg.image.load(resource_path("graphics/cone.png")).convert_alpha(),
+            pg.image.load(resource_path("graphics/mailbox.png")).convert_alpha(),
+            pg.image.load(resource_path("graphics/meter.png")).convert_alpha(),
+            pg.image.load(resource_path("graphics/bench.png")).convert_alpha(),
+            pg.image.load(resource_path("graphics/barrier.png")).convert_alpha(),
+            pg.image.load(resource_path("graphics/bigCone.png")).convert_alpha(),
+            pg.image.load(resource_path("graphics/hydrant.png")).convert_alpha(),
+            pg.image.load(resource_path("graphics/trashCan.png")).convert_alpha(),
 
         ]
         # print(len(self.img)-1)
@@ -762,8 +772,8 @@ class NPC():
     def __init__(self, x, y):
 
         self.NPC1List = [
-                    pg.image.load("graphics/NPC1.png").convert_alpha(),
-                    pg.image.load("graphics/NPC2.png").convert_alpha()
+                    pg.image.load(resource_path("graphics/NPC1.png")).convert_alpha(),
+                    pg.image.load(resource_path("graphics/NPC2.png")).convert_alpha()
                     ]
         # self.NPC1_index = 0
         self.NPCListNew = []
@@ -859,7 +869,7 @@ class EndScreen():
         # gameNameSurf = textFont1.render("My Game!", True, 'Black') # second arg is for Anti Aliasing (smoothing edges) set to True or False
         "maybe not needed use button class instead"
         # self.scalenum = 0.30*0.625
-        # self.img = pg.image.load("graphics/statsMenu.png").convert_alpha()
+        # self.img = pg.image.load(resource_path("graphics/statsMenu.png")).convert_alpha()
         # self.imgSize = self.img.get_size()
         # self.imgScaled = (self.imgSize[0]*self.scalenum, self.imgSize[1]*self.scalenum)
         # self.statsMenuSurf = pg.transform.smoothscale(self.img, self.imgScaled)
@@ -1057,13 +1067,13 @@ class MainMenu():
         self.playTextSurf = textFont1.render("Press Enter/Return to play!", True, 'white')
 
         #game Name
-        # self.img = pg.image.load("graphics/gameName5.png").convert_alpha()
+        # self.img = pg.image.load(resource_path("graphics/gameName5.png")).convert_alpha()
         # self.gameNameSurf = pg.transform.rotozoom(self.img, 0, 0.8*0.625)
         self.gameNameSurf = imgs[0]
 
         # controls menu
         # self.scalenum2 = 0.4*0.625
-        # self.img2 = pg.image.load("graphics/controlsMenu.png").convert_alpha()
+        # self.img2 = pg.image.load(resource_path("graphics/controlsMenu.png")).convert_alpha()
         # self.imgSize = self.img2.get_size()
         # self.imgScaled = (self.imgSize[0]*self.scalenum2, self.imgSize[1]*self.scalenum2)
         # self.controlsMenuSurf = pg.transform.smoothscale(self.img2, self.imgScaled)
@@ -1071,7 +1081,7 @@ class MainMenu():
 
         # objective menu
         # self.scalenum3 = 0.4*0.625
-        # self.img3 = pg.image.load("graphics/objectiveMenu.png").convert_alpha()
+        # self.img3 = pg.image.load(resource_path("graphics/objectiveMenu.png")).convert_alpha()
         # self.imgSize = self.img3.get_size()
         # self.imgScaled = (self.imgSize[0]*self.scalenum3, self.imgSize[1]*self.scalenum3)
         # self.objectiveMenuSurf = pg.transform.smoothscale(self.img3, self.imgScaled) #this is better visually
@@ -1177,15 +1187,15 @@ class Button():
 
     def reset(self):
         # self.img = [
-        #     pg.image.load("graphics/playBlueButton3.png"),
-        #     pg.image.load("graphics/controlsButton.png"),
-        #     pg.image.load("graphics/menuButtonBlue.png").convert_alpha(),
-        #     pg.image.load("graphics/menuButton.png").convert_alpha(),
-        #     pg.image.load("graphics/objectiveButton.png").convert_alpha(),
-        #     pg.image.load("graphics/playAgainButton.png").convert_alpha(),
-        #     pg.image.load("graphics/youWinButton.png").convert_alpha(),
-        #     pg.image.load("graphics/youWinButtonY.png").convert_alpha(),
-        #     pg.image.load("graphics/youWinButtonB.png").convert_alpha()
+        #     pg.image.load(resource_path("graphics/playBlueButton3.png"),
+        #     pg.image.load(resource_path("graphics/controlsButton.png"),
+        #     pg.image.load(resource_path("graphics/menuButtonBlue.png")).convert_alpha(),
+        #     pg.image.load(resource_path("graphics/menuButton.png")).convert_alpha(),
+        #     pg.image.load(resource_path("graphics/objectiveButton.png")).convert_alpha(),
+        #     pg.image.load(resource_path("graphics/playAgainButton.png")).convert_alpha(),
+        #     pg.image.load(resource_path("graphics/youWinButton.png")).convert_alpha(),
+        #     pg.image.load(resource_path("graphics/youWinButtonY.png")).convert_alpha(),
+        #     pg.image.load(resource_path("graphics/youWinButtonB.png")).convert_alpha()
 
         # ]
         # self.img = self.button_imgs
@@ -1236,16 +1246,16 @@ class SkateParts():
 
     def reset(self, skatepart_imgs):
         # self.img = [
-        #     pg.image.load("graphics/wheel.png").convert_alpha(),
-        #     pg.image.load("graphics/wheelPack.png").convert_alpha(),
-        #     pg.image.load("graphics/trucks.png").convert_alpha(),
-        #     pg.image.load("graphics/truckPack.png").convert_alpha(),
-        #     pg.image.load("graphics/bearings.png").convert_alpha(),
-        #     pg.image.load("graphics/boardDeck.png").convert_alpha(),
-        #     pg.image.load("graphics/boardSideViewL.png").convert_alpha(),
-        #     pg.image.load("graphics/boardGripTape.png").convert_alpha(),
-        #     pg.image.load("graphics/completeDeck.png").convert_alpha(),
-        #     pg.image.load("graphics/boardSideViewR.png").convert_alpha()
+        #     pg.image.load(resource_path("graphics/wheel.png")).convert_alpha(),
+        #     pg.image.load(resource_path("graphics/wheelPack.png")).convert_alpha(),
+        #     pg.image.load(resource_path("graphics/trucks.png")).convert_alpha(),
+        #     pg.image.load(resource_path("graphics/truckPack.png")).convert_alpha(),
+        #     pg.image.load(resource_path("graphics/bearings.png")).convert_alpha(),
+        #     pg.image.load(resource_path("graphics/boardDeck.png")).convert_alpha(),
+        #     pg.image.load(resource_path("graphics/boardSideViewL.png")).convert_alpha(),
+        #     pg.image.load(resource_path("graphics/boardGripTape.png")).convert_alpha(),
+        #     pg.image.load(resource_path("graphics/completeDeck.png")).convert_alpha(),
+        #     pg.image.load(resource_path("graphics/boardSideViewR.png")).convert_alpha()
 
         # ]
         self.skatepart_imgs_List = skatepart_imgs
@@ -1383,7 +1393,7 @@ class Cash():
         self.reset()
 
     def reset(self):
-        # self.imgOG = pg.image.load("graphics/cash.png").convert_alpha()
+        # self.imgOG = pg.image.load(resource_path("graphics/cash.png")).convert_alpha()
 
         self.x = width*1/2
         self.y = height*2/3
@@ -1454,7 +1464,7 @@ class SpecialItemDisp():
         self.winButtonAnimationCounter = 0
         self.animationLimitNum = 50
 
-        # self.imgConfetti = pg.image.load("graphics/winConfetti.png").convert_alpha()
+        # self.imgConfetti = pg.image.load(resource_path("graphics/winConfetti.png")).convert_alpha()
         # self.scaleNum = 1/2
         # self.imgConfettiWidth = self.imgConfetti.get_width()
         # self.imgConfettiHeight = self.imgConfetti.get_height()
@@ -1697,8 +1707,8 @@ while running:
             if event.key == pg.K_m:
                 
                 #if the menu key is hit then reset all characters and obstacles
-                # grindLandSlide.stop()
-                # rollingSound.stop()
+                grindLandSlide.stop()
+                rollingSound.stop()
                 controlsButton.mouseBool = False
                 mainMenu.menuBool = True
                 endScreen.endBool = False #og value uncomment
