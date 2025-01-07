@@ -89,6 +89,15 @@ button_imgs = [
 
     ]
 
+cashImg = pg.image.load("graphics/cash.png").convert_alpha()
+statsMenuImg = pg.image.load("graphics/statsMenu.png").convert_alpha()
+imgConfetti = pg.image.load("graphics/winConfetti.png").convert_alpha()
+
+mainMenuImgs = [
+    pg.image.load("graphics/gameName5.png").convert_alpha(),
+    pg.image.load("graphics/controlsMenu.png").convert_alpha(),
+    pg.image.load("graphics/objectiveMenu.png").convert_alpha(),
+]
 
 # #Import Audio Files:
 # rolling = pg.mixer.Sound("audio/rolling.wav")
@@ -384,9 +393,6 @@ class Player():
         else:
             self.grindKeyBool = False
 
-        #quit game
-        if keys[pg.K_ESCAPE]:
-            exit(0)
 
     def collision(self, rect, currPosPass):
         
@@ -848,15 +854,16 @@ class NPC():
         
 class EndScreen():
 
-    def __init__(self):
+    def __init__(self, img):
         #creating text surfaces to blit later
         # gameNameSurf = textFont1.render("My Game!", True, 'Black') # second arg is for Anti Aliasing (smoothing edges) set to True or False
         "maybe not needed use button class instead"
-        self.scalenum = 0.30*0.625
-        self.img = pg.image.load("graphics/statsMenu.png").convert_alpha()
-        self.imgSize = self.img.get_size()
-        self.imgScaled = (self.imgSize[0]*self.scalenum, self.imgSize[1]*self.scalenum)
-        self.statsMenuSurf = pg.transform.smoothscale(self.img, self.imgScaled)
+        # self.scalenum = 0.30*0.625
+        # self.img = pg.image.load("graphics/statsMenu.png").convert_alpha()
+        # self.imgSize = self.img.get_size()
+        # self.imgScaled = (self.imgSize[0]*self.scalenum, self.imgSize[1]*self.scalenum)
+        # self.statsMenuSurf = pg.transform.smoothscale(self.img, self.imgScaled)
+        self.statsMenuSurf = img
         self.statsMenuRect = self.statsMenuSurf.get_rect()
         self.statsMenuRect.center = (250*0.625, height-300*0.625)
 
@@ -1046,26 +1053,29 @@ class EndScreen():
                     
 class MainMenu():
 
-    def __init__(self):
+    def __init__(self, imgs):
         self.playTextSurf = textFont1.render("Press Enter/Return to play!", True, 'white')
 
         #game Name
-        self.img = pg.image.load("graphics/gameName5.png").convert_alpha()
-        self.gameNameSurf = pg.transform.rotozoom(self.img, 0, 0.8*0.625)
+        # self.img = pg.image.load("graphics/gameName5.png").convert_alpha()
+        # self.gameNameSurf = pg.transform.rotozoom(self.img, 0, 0.8*0.625)
+        self.gameNameSurf = imgs[0]
 
         # controls menu
-        self.scalenum2 = 0.4*0.625
-        self.img2 = pg.image.load("graphics/controlsMenu.png").convert_alpha()
-        self.imgSize = self.img2.get_size()
-        self.imgScaled = (self.imgSize[0]*self.scalenum2, self.imgSize[1]*self.scalenum2)
-        self.controlsMenuSurf = pg.transform.smoothscale(self.img2, self.imgScaled)
+        # self.scalenum2 = 0.4*0.625
+        # self.img2 = pg.image.load("graphics/controlsMenu.png").convert_alpha()
+        # self.imgSize = self.img2.get_size()
+        # self.imgScaled = (self.imgSize[0]*self.scalenum2, self.imgSize[1]*self.scalenum2)
+        # self.controlsMenuSurf = pg.transform.smoothscale(self.img2, self.imgScaled)
+        self.controlsMenuSurf = imgs[1]
 
         # objective menu
-        self.scalenum3 = 0.4*0.625
-        self.img3 = pg.image.load("graphics/objectiveMenu.png").convert_alpha()
-        self.imgSize = self.img3.get_size()
-        self.imgScaled = (self.imgSize[0]*self.scalenum3, self.imgSize[1]*self.scalenum3)
-        self.objectiveMenuSurf = pg.transform.smoothscale(self.img3, self.imgScaled) #this is better visually
+        # self.scalenum3 = 0.4*0.625
+        # self.img3 = pg.image.load("graphics/objectiveMenu.png").convert_alpha()
+        # self.imgSize = self.img3.get_size()
+        # self.imgScaled = (self.imgSize[0]*self.scalenum3, self.imgSize[1]*self.scalenum3)
+        # self.objectiveMenuSurf = pg.transform.smoothscale(self.img3, self.imgScaled) #this is better visually
+        self.objectiveMenuSurf = imgs[2]
 
         # creating text rects
         self.mainMenuRect = pg.Surface.get_rect(self.gameNameSurf)
@@ -1076,8 +1086,6 @@ class MainMenu():
 
         self.objectiveRect = pg.Surface.get_rect(self.objectiveMenuSurf)
         self.objectiveRect.center = (width/2, height/2 +100*0.625)
-
-
 
         self.playTextRect = pg.Surface.get_rect(self.playTextSurf)
         self.playTextRect.center = (width/2, height*3/4)
@@ -1184,11 +1192,12 @@ class Button():
         # self.imgIndex = self.imgSelect
         # self.imgSelect = self.img[self.imgIndex]
 
-        scaleNum = self.sizeButton #change this to scale original image
-        self.imgSize = self.imgSelect.get_size() #(240, 300)
-        self.imgScale = (int(self.imgSize[0]*scaleNum*0.625), int(self.imgSize[1]*scaleNum*0.625))
+        # scaleNum = self.sizeButton #change this to scale original image
+        # self.imgSize = self.imgSelect.get_size() #(240, 300)
+        # self.imgScale = (int(self.imgSize[0]*scaleNum*0.625), int(self.imgSize[1]*scaleNum*0.625))
     
-        self.button = pg.transform.smoothscale(self.imgSelect, self.imgScale)
+        # self.button = pg.transform.smoothscale(self.imgSelect, self.imgScale)
+        self.button = self.imgSelect
         self.buttonRect = self.button.get_rect() #setting the bottom mid to a specific place dictated by start positions above
         self.buttonRect.center = (self.x, self.y)
 
@@ -1368,26 +1377,27 @@ class SkateParts():
         # pg.draw.rect(surface=screen, color="red", rect=self.rect, width= 2)
 
 class Cash():
-    def __init__(self, staticMove = False):
+    def __init__(self, img, staticMove = False):
         self.staticMove = staticMove
+        self.img = img
         self.reset()
 
     def reset(self):
-        self.imgOG = pg.image.load("graphics/cash.png").convert_alpha()
+        # self.imgOG = pg.image.load("graphics/cash.png").convert_alpha()
 
         self.x = width*1/2
         self.y = height*2/3
         
-        self.width = self.imgOG.get_width()
-        self.height = self.imgOG.get_height()
+        # self.width = self.imgOG.get_width()
+        # self.height = self.imgOG.get_height()
 
-        self.scaleNum = 1/10
+        # self.scaleNum = 1/10
 
-        self.newWidth = int(self.width *  self.scaleNum * 0.625)
-        self.newHeight = int(self.height * self.scaleNum * 0.625) #no floats
-        self.imgScale = (self.newWidth, self.newHeight)
+        # self.newWidth = int(self.width *  self.scaleNum * 0.625)
+        # self.newHeight = int(self.height * self.scaleNum * 0.625) #no floats
+        # self.imgScale = (self.newWidth, self.newHeight)
 
-        self.img = pg.transform.smoothscale(self.imgOG, self.imgScale)
+        # self.img = pg.transform.smoothscale(self.imgOG, self.imgScale)        
 
         self.rect = self.img.get_rect()
         self.rect.midbottom = (self.x, self.y)
@@ -1437,19 +1447,20 @@ class Cash():
         self.draw()
         
 class SpecialItemDisp():
-    def __init__(self, specialItemList = None):
+    def __init__(self, img, specialItemList = None):
         # spawnSpecialItemList
         self.conStartPosx = 0
         self.conStartPosy = 0
         self.winButtonAnimationCounter = 0
         self.animationLimitNum = 50
 
-        self.imgConfetti = pg.image.load("graphics/winConfetti.png").convert_alpha()
-        self.scaleNum = 1/2
-        self.imgConfettiWidth = self.imgConfetti.get_width()
-        self.imgConfettiHeight = self.imgConfetti.get_height()
-        self.scaledimg = (self.imgConfettiWidth*0.625, self.imgConfettiHeight*0.625)
-        self.imgConfetti = pg.transform.smoothscale(self.imgConfetti, self.scaledimg)
+        # self.imgConfetti = pg.image.load("graphics/winConfetti.png").convert_alpha()
+        # self.scaleNum = 1/2
+        # self.imgConfettiWidth = self.imgConfetti.get_width()
+        # self.imgConfettiHeight = self.imgConfetti.get_height()
+        # self.scaledimg = (self.imgConfettiWidth*0.625, self.imgConfettiHeight*0.625)
+        # self.imgConfetti = pg.transform.smoothscale(self.imgConfetti, self.scaledimg)
+        self.imgConfetti = img
 
         self.imgRect = self.imgConfetti.get_rect()
         self.reset()
@@ -1577,8 +1588,8 @@ bgBirds = World(bg_List[3],0.55)
 
 player = Player(player_xPos, player_yPos)
 nPC = NPC((width-400*0.625),524*0.625)
-endScreen = EndScreen()
-mainMenu = MainMenu()
+endScreen = EndScreen(statsMenuImg)
+mainMenu = MainMenu(mainMenuImgs)
 
 playButton = Button(width/2, height/2, button_imgs[0], (1/6))
 playAgainButton = Button(width/2, height/2, button_imgs[5], (1/3))
@@ -1590,8 +1601,8 @@ youWinButton = Button(width/2, int(200*0.625), button_imgs[6], (1/4))
 # youWinButtonB = Button(width/2, int(200*0.625), button_imgs[8], (1/4))
 
 obstacle1 = Obstacles(width/2, player_yPos)
-cash = Cash()
-cashDisp = Cash(True)
+cash = Cash(cashImg)
+cashDisp = Cash(cashImg, True)
 
 # #skateparts
 wheel = SkateParts(skatepart_imgs, 0, 4)
@@ -1627,7 +1638,7 @@ rectsCollideList = [
 
 
 # #to display tracking during game on screen
-specialItemDisp = SpecialItemDisp(spawnSpecialItemList)
+specialItemDisp = SpecialItemDisp(imgConfetti, spawnSpecialItemList )
 
 def finalSpecialItemCount():
     itemCountList = [wheel.finalItemcount,
