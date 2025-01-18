@@ -99,8 +99,8 @@ button_imgs = [
     pg.image.load(resource_path("graphics/objectiveButton.png")).convert_alpha(),
     pg.image.load(resource_path("graphics/playAgainButton.png")).convert_alpha(),
     pg.image.load(resource_path("graphics/youWinButton.png")).convert_alpha(),
-    pg.image.load(resource_path("graphics/jumpButton.png")).convert_alpha()
-    # pg.image.load(resource_path("graphics/youWinButtonB.png")).convert_alpha()
+    pg.image.load(resource_path("graphics/jumpButton.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/rollButton.png")).convert_alpha()
 
     ]
 
@@ -256,6 +256,7 @@ class Player():
 
         #mobile bools
         self.jumpMobile = False
+        self.rollBool = False
         
         #counter for speed and accelleration control
         self.dx = 0
@@ -324,7 +325,7 @@ class Player():
         
         #Movement keys and setting other object and world Bools 
         "the section below needs added logic for tricks if time"   
-        if keys[pg.K_d]:
+        if keys[pg.K_d] or self.rollBool == True:
             self.movingRight = True           
             world.bgMove = True
             bgPowerLines.bgMove = True
@@ -1632,6 +1633,8 @@ youWinButton = Button(width/2, int(200*0.625), button_imgs[6], (1/4))
 
 #Mobile Buttons:
 jumpButton = Button(width*3/4, height/2, button_imgs[7], (1/6))
+rollButton = Button(width*3/4+100, height/2, button_imgs[8], (1/6))
+
 
 obstacle1 = Obstacles(width/2, player_yPos)
 cash = Cash(cashImg)
@@ -1704,6 +1707,10 @@ mainMenu.menuBool = True
 while running:
     #so all functions have access to keys presed
     keys = pg.key.get_pressed()
+
+    # Get Current Mouse Position
+    mouse_pos = pg.mouse.get_pos()
+
     dt = min(clock.tick(60) / 1000, 0.05)  # Time in seconds since the last frame
     # ENTER MAIN MENU    
     # if mainMenu.menuBool == True: #comment out in final
@@ -1748,13 +1755,21 @@ while running:
                 player.shiftPressed = False
 
         #Mobile clicks
+        if jumpButton.buttonRect.collidepoint(mouse_pos):
+            player.jumpMobile = True
+        else:
+            player.jumpMobile = False
         if event.type == pg.MOUSEBUTTONDOWN:
-            if jumpButton.buttonRect.collidepoint(event.pos):
-                player.jumpMobile = True
+            # if jumpButton.buttonRect.collidepoint(event.pos):
+            #     player.jumpMobile = True
+        
+            if rollButton.buttonRect.collidepoint(event.pos):
+                player.rollBool = True
                 print("Button tapped!")
         elif event.type == pg.MOUSEBUTTONUP:
             print("Touch released")
             player.jumpMobile = False
+            player.rollBool = False
 
         #PASS EVENTS TO OTHER OBJECTS IN CLASSES:
         playButton.playerInput(event)
@@ -1798,7 +1813,10 @@ while running:
         cash.update()
         player.update(dt)
         displayScore()
+
+        #Mobile buttons update
         jumpButton.update()
+        rollButton.update()
 
 
 
