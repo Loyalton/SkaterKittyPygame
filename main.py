@@ -29,7 +29,7 @@ print("starting")
 width = int(1280 *0.625)
 height = int(720 *0.625)
 resolution = (width, height)
-screen = pg.display.set_mode(resolution, pg.RESIZABLE)
+screen = pg.display.set_mode(resolution) #, pg.RESIZABLE
 clock = pg.time.Clock()
 
 
@@ -93,8 +93,8 @@ button_imgs = [
     pg.image.load(resource_path("graphics/menuButton.png")).convert_alpha(),
     pg.image.load(resource_path("graphics/objectiveButton.png")).convert_alpha(),
     pg.image.load(resource_path("graphics/playAgainButton.png")).convert_alpha(),
-    pg.image.load(resource_path("graphics/youWinButton.png")).convert_alpha()
-    # pg.image.load(resource_path("graphics/youWinButtonY.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/youWinButton.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/jumpButton.png")).convert_alpha()
     # pg.image.load(resource_path("graphics/youWinButtonB.png")).convert_alpha()
 
     ]
@@ -248,6 +248,9 @@ class Player():
         self.grindKeyBool = False
         self.loseConditionBool = False
         self.platformBool = False
+
+        #mobile bools
+        self.jumpMobile = False
         
         #counter for speed and accelleration control
         self.dx = 0
@@ -375,7 +378,7 @@ class Player():
         else:
             self.readyJumpBool = False
 
-        if keys[pg.K_SPACE]:
+        if keys[pg.K_SPACE] or self.jumpMobile == True:
             if self.readyJumpBool == True and self.inAirBool == False: #and self.spaceBarHeld == True:
                 self.readyJumpBool = False  # Disable further jumps until landing
                 self.spaceBarHeld = True  # Update space hold flag
@@ -1214,18 +1217,29 @@ class Button():
         self.mouseBool = False
         self.selectBool = False
 
-    def playerInput(self, event): #takes event queue input to use here
-        #Checking mouse clicks and positions within the event Section
-        if event.type == pg.MOUSEBUTTONUP: #captures only when it is released once
-            # print("mouse up")
-            if event.button == 1 and self.buttonRect.collidepoint(event.pos): #checks if mouse collides with rect
-                # print("collide")
-                self.mouseBool = True
-                if self.mouseBool == True:
-                    self.selectBool = True
-        else:
-            self.mouseBool = False #moved logic to the main menu
-            pass
+    # def playerInput(self, event): #takes event queue input to use here
+    #     #Checking mouse clicks and positions within the event Section
+    #     if event.type == pg.MOUSEBUTTONUP: #captures only when it is released once
+    #         # print("mouse up")
+    #         if event.button == 1 and self.buttonRect.collidepoint(event.pos): #checks if mouse collides with rect
+    #             # print("collide")
+    #             self.mouseBool = True
+    #             if self.mouseBool == True:
+    #                 self.selectBool = True
+    #     else:
+    #         self.mouseBool = False #moved logic to the main menu
+    #         pass
+    def playerInput(self, event):
+        # Check for mouse or touch input
+        if event.type == pg.MOUSEBUTTONDOWN:  # Capture when the button is pressed
+            if event.button == 1 and self.buttonRect.collidepoint(event.pos):
+                self.mouseBool = True  # Button is pressed
+        elif event.type == pg.MOUSEBUTTONUP:  # Capture when the button is released
+            if event.button == 1 and self.buttonRect.collidepoint(event.pos) and self.mouseBool:
+                self.selectBool = True  # Button action is confirmed
+                print("Button pressed!")
+            self.mouseBool = False  # Reset after release
+
 
     def draw(self):
         screen.blit(self.button, self.buttonRect)
@@ -1602,6 +1616,7 @@ endScreen = EndScreen(statsMenuImg)
 mainMenu = MainMenu(mainMenuImgs)
 
 playButton = Button(width/2, height/2, button_imgs[0], (1/6))
+
 playAgainButton = Button(width/2, height/2, button_imgs[5], (1/3))
 controlsButton = Button(250, height-200, button_imgs[1], (1/4))
 menuButton = Button(250, height-200, button_imgs[2], (1/6))
@@ -1609,6 +1624,9 @@ objectiveButton = Button(width-250, height-200, button_imgs[4], (1/4))
 youWinButton = Button(width/2, int(200*0.625), button_imgs[6], (1/4))
 # youWinButtonY = Button(width/2, int(200*0.625), button_imgs[7], (1/4))
 # youWinButtonB = Button(width/2, int(200*0.625), button_imgs[8], (1/4))
+
+#Mobile Buttons:
+jumpButton = Button(width*3/4, height/2, button_imgs[7], (1/6))
 
 obstacle1 = Obstacles(width/2, player_yPos)
 cash = Cash(cashImg)
@@ -1697,6 +1715,7 @@ while running:
         if event.type == pg.QUIT:
             pg.quit() #opposite of pg init
             sys.exit(0) #stops while loop and ends cleanly
+        
         if event.type == pg.KEYDOWN:
             if event.key == pg.K_ESCAPE:
                 # bgMusic.stop()
@@ -1723,6 +1742,14 @@ while running:
             if event.key in (pg.K_LSHIFT, pg.K_RSHIFT):
                 player.shiftPressed = False
 
+        #Mobile clicks
+        if event.type == pg.MOUSEBUTTONDOWN:
+            if jumpButton.buttonRect.collidepoint(event.pos):
+                player.jumpMobile = True
+                print("Button tapped!")
+        elif event.type == pg.MOUSEBUTTONUP:
+            print("Touch released")
+            player.jumpMobile = False
 
         #PASS EVENTS TO OTHER OBJECTS IN CLASSES:
         playButton.playerInput(event)
@@ -1766,6 +1793,9 @@ while running:
         cash.update()
         player.update(dt)
         displayScore()
+        jumpButton.update()
+
+
 
         #randomly spawn special items so it feels more random and unique    
         specialItemSpawnInt = random.randint(0, len(spawnSpecialItemList)-1)
@@ -1807,7 +1837,7 @@ while running:
         if endScreen.endBool == True:
             endScreen.update(dt)  
         pass
-                    
+              
     #refreshes the screen with a frame rate of 60Hz
     pg.display.flip()
     # clock.tick(60)
