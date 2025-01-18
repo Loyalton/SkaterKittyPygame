@@ -37,6 +37,11 @@ clock = pg.time.Clock()
 textFont1 = pg.font.Font(None, int(50*0.625)) # None can be changes to specify a font type
 textFont2 = pg.font.Font(None, int(25*0.625)) # 25 is a smaller font size than the above
 
+#Version control
+
+versionSurf = textFont2.render("Version: 0.2.2", True, "white")
+
+
 # listFonts = pg.font.get_fonts()
 # print(listFonts)
 "we could make this a list of fonts and use an index to select between them"
@@ -1837,7 +1842,7 @@ while running:
         if endScreen.endBool == True:
             endScreen.update(dt)  
         pass
-              
+    screen.blit(versionSurf, (0,0))          
     #refreshes the screen with a frame rate of 60Hz
     pg.display.flip()
     # clock.tick(60)
