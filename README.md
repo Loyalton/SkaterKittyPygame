@@ -1,10 +1,14 @@
 # SkaterKittyPygame
-This repo will be used to track changes to the project I am working on 
 
-Version: 0.2.1 (Stable release is the previous one with no mobile edits)
+Version: 0.3.0 - performance + touch-screen release.
 
-Art Related Specs:
-All art was modified in photoshop
-Brightness / Contrast: -14 / -25
-Button has a rectangle with 50% opacity and 100 degree rounded corner colors listed below
-811 bot, 56,14 bright, color #309de0 (for button), color #79e030 (for controls), color #e0304a (for objective), curve on rect color is 100,
+## What changed in 0.3.0
+- Game speed no longer depends on frame rate (fixed 60 ticks/second); jump height is the same on 30, 60 and 120 Hz screens.
+- Touch controls: PUSH (d), BRAKE (a), JUMP (space), GRIND (shift). They appear after the first touch.
+- Smaller download (graphics + audio roughly halved), less drawing per frame, cached text, music streamed.
+- Async main loop (required by pygbag).
+
+## Art specs (unchanged)
+All art was modified in photoshop. Brightness / Contrast: -14 / -25.
+Button has a rectangle with 50% opacity and 100 degree rounded corner. Colors: #309de0 (button), #79e030 (controls), #e0304a (objective).
+Notes: graphics/sky.jpg is a JPEG copy of the old sky.png; bgBirds.png and bgPowerLines.png are cropped to their visible rows (offsets are BG_Y in main.py).

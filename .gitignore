@@ -1,0 +1,4 @@
+# pygbag scratch files - not needed in the repo
+build/web-cache/
+build/web/*.apk.old
+__pycache__/

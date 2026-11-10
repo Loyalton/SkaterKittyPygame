@@ -1,3 +1,4 @@
+import asyncio          # pygbag needs an async main loop (see main() at the bottom)
 import pygame as pg
 import sys, os
 import random
@@ -24,7 +25,6 @@ def resource_path(relative_path):
 
 pg.init()
 pg.mixer.init()
-print("starting")
 # display screen and basic set up
 width = int(1280 *0.625)
 height = int(720 *0.625)
@@ -37,9 +37,34 @@ clock = pg.time.Clock()
 textFont1 = pg.font.Font(None, int(50*0.625)) # None can be changes to specify a font type
 textFont2 = pg.font.Font(None, int(25*0.625)) # 25 is a smaller font size than the above
 
+# ---------------------------------------------------------------------------
+# PERFORMANCE HELPERS
+# ---------------------------------------------------------------------------
+# The game was tuned at 60 frames per second, and all movement is "per frame".
+# On a slow computer/phone the frame rate drops and everything ran in slow motion
+# (and jumps changed height). The main loop now always advances the game in fixed
+# 1/60 s steps, so speed is identical on every device. If a device is too slow it
+# draws fewer frames instead of slowing the game down.
+FIXED_DT = 1 / 60
+MAX_STEPS_PER_FRAME = 4      # never try to catch up more than this many steps in one frame
+MAX_FRAME_TIME = 0.25        # ignore long pauses (tab switch etc.)
+
+# font.render() is slow (especially in the browser). Text that doesn't change is
+# rendered once and re-used.
+_textCache = {}
+def renderText(font, text, color):
+    key = (id(font), text, color)
+    surf = _textCache.get(key)
+    if surf is None:
+        if len(_textCache) > 300:
+            _textCache.clear()
+        surf = font.render(text, True, color)
+        _textCache[key] = surf
+    return surf
+
 #Version control
 
-versionSurf = textFont2.render("Version: 0.2.2", True, "white")
+versionSurf = textFont2.render("Version: 0.3.0", True, "white")
 
 
 # listFonts = pg.font.get_fonts()
@@ -69,12 +94,17 @@ gameActive = False
 #LOAD ALL IMAGES:
 
 #Background images:
+# sky has no transparency -> convert() makes it a fast opaque copy instead of a slow alpha blend.
+# The power lines and birds layers were cropped to just the rows that contain artwork
+# (the empty transparent rows were being blended every frame for nothing). BG_Y is where
+# the cropped layer sits on screen, so it looks exactly the same as before.
 bg_List = [
-    pg.image.load(resource_path("graphics/sky.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/sky.jpg")).convert(),
     pg.image.load(resource_path("graphics/bgBuildings.png")).convert_alpha(),
     pg.image.load(resource_path("graphics/bgPowerLines.png")).convert_alpha(),
     pg.image.load(resource_path("graphics/bgBirds.png")).convert_alpha()
     ]
+BG_Y = [0, 0, 125, 12]
 
 skatepart_imgs = [
     pg.image.load(resource_path("graphics/wheel.png")).convert_alpha(),
@@ -95,14 +125,19 @@ button_imgs = [
     pg.image.load(resource_path("graphics/playBlueButton3.png")).convert_alpha(),
     pg.image.load(resource_path("graphics/controlsButton.png")).convert_alpha(),
     pg.image.load(resource_path("graphics/menuButtonBlue.png")).convert_alpha(),
-    pg.image.load(resource_path("graphics/menuButton.png")).convert_alpha(),
     pg.image.load(resource_path("graphics/objectiveButton.png")).convert_alpha(),
     pg.image.load(resource_path("graphics/playAgainButton.png")).convert_alpha(),
-    pg.image.load(resource_path("graphics/youWinButton.png")).convert_alpha(),
-    pg.image.load(resource_path("graphics/jumpButton.png")).convert_alpha()
+    pg.image.load(resource_path("graphics/youWinButton.png")).convert_alpha()
     # pg.image.load(resource_path("graphics/youWinButtonB.png")).convert_alpha()
 
     ]
+
+playerImgs = [
+    pg.image.load(resource_path("graphics/player1.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/player2.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/player3.png")).convert_alpha(),
+    pg.image.load(resource_path("graphics/player4.png")).convert_alpha()
+]
 
 cashImg = pg.image.load(resource_path("graphics/cash.png")).convert_alpha()
 statsMenuImg = pg.image.load(resource_path("graphics/statsMenu.png")).convert_alpha()
@@ -116,7 +151,6 @@ mainMenuImgs = [
 
 # #Import Audio Files:
 # rolling = pg.mixer.Sound("audio/rolling.wav")
-bgMusic = pg.mixer.Sound("audio/RomanoBeatbyLoyalton.ogg")
 ambientSound = pg.mixer.Sound("audio/ambientOutdoorSounds.ogg")
 cashSound = pg.mixer.Sound("audio/cash.ogg")
 #skateboard sounds
@@ -139,16 +173,23 @@ grindSlide = pg.mixer.Sound("audio/grindSlideMetal.ogg")
 grindPack = [grindLand, grindLandSlide, grindSlide]
 
 # #play sound
-bgMusic.play(-1) #-1 means to loop indefinitely
+# The music streams from disk instead of being fully decoded into memory (saves ~20 MB of RAM).
+try:
+    pg.mixer.music.load("audio/RomanoBeatbyLoyalton.ogg")
+    pg.mixer.music.play(-1) #-1 means to loop indefinitely
+except Exception:
+    bgMusic = pg.mixer.Sound("audio/RomanoBeatbyLoyalton.ogg")
+    bgMusic.play(-1)
 ambientSound.play(-1)
 ambientSound.set_volume(0.05)
 
 
 class World():
     
-    def __init__(self, imgSelect, bgspeed = 0):
+    def __init__(self, imgSelect, bgspeed = 0, yOffset = 0):
         imgSelect = imgSelect
         bgspeed = bgspeed
+        self.yOffset = yOffset
         self.reset(imgSelect, bgspeed)
 
     def reset(self, imgSelect, bgspeed):
@@ -168,7 +209,8 @@ class World():
 
         #starting position of background
         self.bgStartPosx = 0 #this will be used to scroll
-        self.bgStartPosy = 0 #this probably won't need to change
+        self.bgStartPosy = self.yOffset #cropped layers sit lower on the screen
+        self.bgW = self.background.get_width()
 
         self.bgRect = pg.Surface.get_rect(self.background)
         self.bgRect.topleft = (self.bgStartPosx, self.bgStartPosy)
@@ -198,12 +240,13 @@ class World():
             self.bgStartPosx -= self.bgSpeed
 
         #if the background has fully scrolled off the screen, reset position
-        if self.bgStartPosx <= -self.background.get_width():
+        if self.bgStartPosx <= -self.bgW:
             self.bgStartPosx = 0
 
     def draw(self):
         screen.blit(self.background, (self.bgStartPosx, self.bgStartPosy))
-        screen.blit(self.background, (self.bgStartPosx+self.background.get_width(), self.bgStartPosy)) #twice for seamless repetition
+        if self.bgStartPosx + self.bgW < width: #second copy only when it is actually on screen
+            screen.blit(self.background, (self.bgStartPosx+self.bgW, self.bgStartPosy)) #twice for seamless repetition
 
 class Player():
     def __init__(self, x, y):
@@ -211,12 +254,7 @@ class Player():
 
     def reset(self, x, y):
 
-        self.img = self.ollieImages = [
-            pg.image.load(resource_path("graphics/player1.png")).convert_alpha(),
-            pg.image.load(resource_path("graphics/player2.png")).convert_alpha(),
-            pg.image.load(resource_path("graphics/player3.png")).convert_alpha(),
-            pg.image.load(resource_path("graphics/player4.png")).convert_alpha()
-        ]
+        self.img = self.ollieImages = playerImgs
         self.current_image_index = 0
         # self.player_TranformedList = []
 
@@ -825,10 +863,6 @@ class NPC():
         self.animationCounter = 0
 
     def animation(self, dt):
-        #random integer for placement use
-        self.randInt = random.randint(0,3)
-        self.rantIntx = random.randint(player_xPos, width)
-
         #get the current time in milliseconds
         current_time = pg.time.get_ticks()
         # self.animationCounter += 1*dt
@@ -925,9 +959,9 @@ class EndScreen():
         if self.countEnd == self.maxEndCount:
             self.countBool = True
         elif 0 < self.countEnd < self.maxEndCount and self.countBool == False:
-            self.endGameTextSurf = textFont1.render(self.blink_Text, True, self.blinkColor1)
+            self.endGameTextSurf = renderText(textFont1, self.blink_Text, self.blinkColor1)
         elif 0 < self.countEnd < self.maxEndCount and self.countBool == True:
-            self.endGameTextSurf = textFont1.render(self.blink_Text, True, self.blinkColor2)
+            self.endGameTextSurf = renderText(textFont1, self.blink_Text, self.blinkColor2)
         elif self.countEnd == 0:
             self.countBool = False
             pass
@@ -967,7 +1001,7 @@ class EndScreen():
             if self.dispScoreBool == False:
                 self.finalscore = displayScore()
                 self.dispScoreBool = True
-            self.finalScoreText = textFont1.render(f'{self.finalscore}', True, ("blue"))
+            self.finalScoreText = renderText(textFont1, f'{self.finalscore}', "blue")
             self.finalScoreRect = self.finalScoreText.get_rect(center = (350*0.625, height-300*0.625))
             # screen.blit(finalScoreText, finalScoreRect)
             pass
@@ -1060,7 +1094,7 @@ class EndScreen():
 
             finalSpecialCount = finalSpecialItemCount() #to get the final count of special parts
 
-            self.specialItemCount = textFont1.render(f'{finalSpecialCount}/15', True, ("black"))
+            self.specialItemCount = renderText(textFont1, f'{finalSpecialCount}/15', "black")
             self.finalCashRect = self.specialItemCount.get_rect(center = (350*0.625, height-215*0.625))
             screen.blit(self.specialItemCount, self.finalCashRect)
 
@@ -1155,6 +1189,7 @@ class MainMenu():
 
                 menuButton.update()
                 screen.blit(self.controlsMenuSurf, self.controlsRect)
+                touch.drawControlsHint()
                 
                 # self.menuBool = False
                 # self.gameActive = True
@@ -1221,6 +1256,7 @@ class Button():
 
         self.mouseBool = False
         self.selectBool = False
+        self.releasePending = False
 
     # def playerInput(self, event): #takes event queue input to use here
     #     #Checking mouse clicks and positions within the event Section
@@ -1239,11 +1275,18 @@ class Button():
         if event.type == pg.MOUSEBUTTONDOWN:  # Capture when the button is pressed
             if event.button == 1 and self.buttonRect.collidepoint(event.pos):
                 self.mouseBool = True  # Button is pressed
+                self.releasePending = False
         elif event.type == pg.MOUSEBUTTONUP:  # Capture when the button is released
             if event.button == 1 and self.buttonRect.collidepoint(event.pos) and self.mouseBool:
                 self.selectBool = True  # Button action is confirmed
-                print("Button pressed!")
-            self.mouseBool = False  # Reset after release
+            # keep mouseBool True until the end of this frame (endFrame) so that a quick tap whose
+            # press and release land in the same frame (slow computers/phones) is not lost
+            self.releasePending = True
+
+    def endFrame(self):
+        if self.releasePending:
+            self.mouseBool = False
+            self.releasePending = False
 
 
     def draw(self):
@@ -1278,6 +1321,8 @@ class SkateParts():
 
         # ]
         self.skatepart_imgs_List = skatepart_imgs
+        self._rotCache = {}
+        self._flipCache = {}
 
         self.imgIndex = self.imgIndexOG
         self.imgSelect = self.skatepart_imgs_List[self.imgIndex]
@@ -1354,10 +1399,9 @@ class SkateParts():
             if self.staticMotion == False:
                 self.rect.x -= player.dx #adjust this to a global movement to remove wiggle
             
-            self.randintx = random.randint(player_xPos, width)
-            self.randinty = random.randint(int(height*1/6), int(height*2/6))
-
             if self.rect.right < -200:
+                self.randintx = random.randint(player_xPos, width)
+                self.randinty = random.randint(int(height*1/6), int(height*2/6))
                 self.rect.left = width*self.randInt + self.randintx #to give more sense of randomness
                 self.rect.top = self.randinty
                 # self.spawnNewTrigger = True
@@ -1377,7 +1421,10 @@ class SkateParts():
             if self.rotateCount >=5*dt:
                 self.angle += 90 #for some reason this also makes the image change size if smaller? BUG
                 self.currPosRot = self.rect.midbottom
-                self.surf = pg.transform.rotate(self.imgSelect, self.angle)  #rotate og image so doesn't get blurry
+                rotKey = self.angle % 360
+                self.surf = self._rotCache.get(rotKey)
+                if self.surf is None:
+                    self.surf = self._rotCache[rotKey] = pg.transform.rotate(self.imgSelect, self.angle)  #rotate og image so doesn't get blurry
                 # self.surf = pg.transform.smoothscale(rotatedSurf, self.imgScale)  #scale image again
                 self.rect = self.surf.get_rect()
                 self.rect.midbottom = self.currPosRot
@@ -1392,7 +1439,9 @@ class SkateParts():
             elif self.flipCount >= 25*dt: #self.flipTimeNum:
                 self.flip_x = 0    
             self.currPosRot = self.rect.midbottom
-            self.surf = pg.transform.flip(self.imgSelect, self.flip_x, 0)  #rotate og image so doesn't get blurry
+            self.surf = self._flipCache.get(self.flip_x)
+            if self.surf is None:
+                self.surf = self._flipCache[self.flip_x] = pg.transform.flip(self.imgSelect, self.flip_x, 0)
             # self.surf = pg.transform.smoothscale(rotatedSurf, self.imgScale)  #scale image again
             self.rect = self.surf.get_rect()
             self.rect.midbottom = self.currPosRot                         
@@ -1455,22 +1504,26 @@ class Cash():
         #     self.finalCash = self.cashScore[0].strip()
     
         # self.finalCashText = textFont1.render(f'Cash Collected: ${self.finalCash}', True, ("green"))
-        self.finalCashText = textFont1.render(f'${self.cashcount}', True, ("green"))
+        self.finalCashText = renderText(textFont1, f'${self.cashcount}', "green")
         self.finalCashRect = self.finalCashText.get_rect(center = (350*0.625, height-260*0.625))
         screen.blit(self.finalCashText, self.finalCashRect)
     
+    def rerollPosition(self):
+        self.randintx = random.randint(int(player_xPos), int(width))
+        self.randinty = random.randint(int(height*2/4), int(height*2/3))
+
     def update(self):
         if self.staticMove == False:
             self.rect.x -= player.dx
-            self.randintx = random.randint(int(player_xPos), int(width))
-            self.randinty = random.randint(int(height*2/4), int(height*2/3))
-            
+
             if self.rect.colliderect(player.playerRect.x +player.dx, player.playerRect.y, player.playerRect.w, player.playerRect.h): #add prediction collision with dx
+                self.rerollPosition()
                 cashSound.play() #delay in sound, clip audio
                 self.rect.left = width + self.randintx
                 self.rect.bottom = self.randinty
                 self.cashcount += 1 #add a cash count and load to text after some amount
             if self.rect.right < 0:
+                self.rerollPosition()
                 self.rect.left = width + self.randintx
                 self.rect.bottom = self.randinty
         self.draw()
@@ -1501,22 +1554,22 @@ class SpecialItemDisp():
         bearingsDisp.rect.center = (width*4/6, 100 *0.625)
         boardDeckDisp.rect.center = (width*5/6, 100 *0.625)
 
-        self.cashCount = textFont1.render(f': ${cash.cashcount}', True, ("black"))
+        self.cashCount = renderText(textFont1, f': ${cash.cashcount}', "black")
         self.cashCountRect = self.cashCount.get_rect(center = (int(width*1/6 +80*0.625), 100 *0.625))
 
-        self.wheelCount = textFont1.render(f': {wheel.finalItemcount}/4', True, ("black"))
+        self.wheelCount = renderText(textFont1, f': {wheel.finalItemcount}/4', "black")
         self.wheelCountRect = self.wheelCount.get_rect(center = (width*2/6 +80 *0.625, 100 *0.625))
 
-        self.truckCount = textFont1.render(f': {trucks.finalItemcount}/2', True, ("black"))
+        self.truckCount = renderText(textFont1, f': {trucks.finalItemcount}/2', "black")
         self.truckCountRect = self.truckCount.get_rect(center = (width*3/6 +80 *0.625, 100 *0.625))
 
-        self.bearingCount = textFont1.render(f': {bearings.finalItemcount}/8', True, ("black"))
+        self.bearingCount = renderText(textFont1, f': {bearings.finalItemcount}/8', "black")
         self.bearingCountRect = self.bearingCount.get_rect(center = (width*4/6 +80 *0.625, 100 *0.625))
 
-        self.boardDeckCount = textFont1.render(f': {boardDeck.finalItemcount}/1', True, ("black"))
+        self.boardDeckCount = renderText(textFont1, f': {boardDeck.finalItemcount}/1', "black")
         self.boardCountRect = self.boardDeckCount.get_rect(center = (width*5/6 +80 *0.625, 100 *0.625))
 
-        self.winTextSurf = textFont1.render('You Win!!!', True, ("green"))
+        self.winTextSurf = renderText(textFont1, 'You Win!!!', "green")
         self.winTextRect = self.winTextSurf.get_rect(center = (width/2 , 200 *0.625))
 
     def drawConfetti(self, dt):
@@ -1554,7 +1607,7 @@ def displayScore():
     global currentTime, cT
     cT = (pg.time.get_ticks() - start_ticks)
     currentTime = int((cT)/1000)
-    scoreSurf = textFont1.render(f'Time: {currentTime}s', True, (255,255,255))
+    scoreSurf = renderText(textFont1, f'Time: {currentTime}s', (255,255,255))
     scoreRect = scoreSurf.get_rect(topleft = (10, 10))
     lines = str(currentTime)
 
@@ -1610,10 +1663,10 @@ def resetALL():
 #---------------------------------------
 
 #INSTANTIATING CLASSES:
-sky = World(bg_List[0], 0.25)
-world = World(bg_List[1],0)
-bgPowerLines = World(bg_List[2],0)
-bgBirds = World(bg_List[3],0.55)
+sky = World(bg_List[0], 0.25, BG_Y[0])
+world = World(bg_List[1],0, BG_Y[1])
+bgPowerLines = World(bg_List[2],0, BG_Y[2])
+bgBirds = World(bg_List[3],0.55, BG_Y[3])
 
 player = Player(player_xPos, player_yPos)
 nPC = NPC((width-400*0.625),524*0.625)
@@ -1622,16 +1675,15 @@ mainMenu = MainMenu(mainMenuImgs)
 
 playButton = Button(width/2, height/2, button_imgs[0], (1/6))
 
-playAgainButton = Button(width/2, height/2, button_imgs[5], (1/3))
+playAgainButton = Button(width/2, height/2, button_imgs[4], (1/3))
 controlsButton = Button(250, height-200, button_imgs[1], (1/4))
 menuButton = Button(250, height-200, button_imgs[2], (1/6))
-objectiveButton = Button(width-250, height-200, button_imgs[4], (1/4))
-youWinButton = Button(width/2, int(200*0.625), button_imgs[6], (1/4))
+objectiveButton = Button(width-250, height-200, button_imgs[3], (1/4))
+youWinButton = Button(width/2, int(200*0.625), button_imgs[5], (1/4))
 # youWinButtonY = Button(width/2, int(200*0.625), button_imgs[7], (1/4))
 # youWinButtonB = Button(width/2, int(200*0.625), button_imgs[8], (1/4))
 
-#Mobile Buttons:
-jumpButton = Button(width*3/4, height/2, button_imgs[7], (1/6))
+# (the old prototype jumpButton was replaced by the TouchControls overlay below)
 
 obstacle1 = Obstacles(width/2, player_yPos)
 cash = Cash(cashImg)
@@ -1696,40 +1748,133 @@ def totalSpecialPartsList():
     return partsList
 
 
-#debugging delete later:
-gameActive = False
-mainMenu.menuBool = True
-# endScreen.endBool = False
 
-while running:
-    #so all functions have access to keys presed
-    keys = pg.key.get_pressed()
-    dt = min(clock.tick(60) / 1000, 0.05)  # Time in seconds since the last frame
-    # ENTER MAIN MENU    
-    # if mainMenu.menuBool == True: #comment out in final
-    #     mainMenu.update() #comment out in final
-    if mainMenu.menuBool == True and endScreen.endBool == False:
-        mainMenu.update() 
-    elif mainMenu.menuBool == False and endScreen.endBool == False:
-        gameActive = True
-    else:
-        pass 
+# ---------------------------------------------------------------------------
+# TOUCH CONTROLS (phones / tablets)
+# ---------------------------------------------------------------------------
+# The game has four inputs. On a touch screen they become four on-screen buttons:
+#     PUSH  = D key      (hold to speed up)         <- left thumb
+#     BRAKE = A key      (hold to slow down)        <- left thumb (small)
+#     JUMP  = SPACE key  (hold to crouch, let go to ollie)   <- right thumb
+#     GRIND = SHIFT key  (hold while landing on a rail)      <- right thumb (small)
+# The buttons only appear after the first touch, so keyboard players never see them.
+# Fingers are tracked separately, so both thumbs can be down at the same time.
+class TouchControls():
+    def __init__(self):
+        self.active = False        # turns True the first time the screen is touched
+        self.fingerSeen = False    # True once real finger events arrive
+        self.pointers = {}         # finger id -> (x, y) in game pixels
+        self.state = {"push": False, "brake": False, "jump": False, "grind": False}
 
+        # name, label, centre, radius, colour
+        layout = [
+            ("push",  "PUSH",  (70, height-85),  56, (121, 224, 48)),
+            ("brake", "BRAKE", (70, height-190), 38, (150, 150, 150)),
+            ("jump",  "JUMP",  (width-70, height-85), 56, (48, 157, 224)),
+            ("grind", "GRIND", (width-195, height-60), 42, (224, 48, 74)),
+        ]
+        labelFont = pg.font.Font(None, 26)
+        self.buttons = []
+        for name, label, center, radius, color in layout:
+            idle = self.makeButtonSurf(label, radius, color, labelFont, 120)
+            down = self.makeButtonSurf(label, radius, color, labelFont, 235)
+            self.buttons.append((name, center, radius, idle, down))
+
+        self.hint = renderText(textFont2, "Touch screen:  PUSH = d    BRAKE = a    JUMP = space    GRIND = shift", "white")
+        self.hintRect = self.hint.get_rect(center=(width/2, height-18))
+
+    def makeButtonSurf(self, label, radius, color, font, alpha):
+        surf = pg.Surface((radius*2, radius*2), pg.SRCALPHA)
+        pg.draw.circle(surf, (color[0], color[1], color[2], alpha), (radius, radius), radius)
+        pg.draw.circle(surf, (255, 255, 255, 220), (radius, radius), radius, 3)
+        text = font.render(label, True, (255, 255, 255))
+        surf.blit(text, text.get_rect(center=(radius, radius)))
+        return surf
+
+    def handleEvent(self, event):
+        t = event.type
+        if t == pg.FINGERDOWN or t == pg.FINGERMOTION:
+            self.active = True
+            self.fingerSeen = True
+            self.pointers[event.finger_id] = (event.x*width, event.y*height)
+        elif t == pg.FINGERUP:
+            self.pointers.pop(event.finger_id, None)
+        elif getattr(event, "touch", False) and not self.fingerSeen:
+            # fallback: some browsers only deliver touches as (touch-flagged) mouse events
+            if t == pg.MOUSEBUTTONDOWN or t == pg.MOUSEMOTION and "mouse" in self.pointers:
+                self.active = True
+                self.pointers["mouse"] = event.pos
+            elif t == pg.MOUSEBUTTONUP:
+                self.pointers.pop("mouse", None)
+        elif t == getattr(pg, "WINDOWFOCUSLOST", -1):
+            self.pointers.clear()   # don't leave a button stuck down if the page loses focus
+
+    def refresh(self):
+        for name, (cx, cy), radius, idle, down in self.buttons:
+            r2 = (radius + 12) ** 2     # a little extra reach so thumbs don't miss
+            pressed = False
+            for px, py in self.pointers.values():
+                if (px-cx)**2 + (py-cy)**2 <= r2:
+                    pressed = True
+                    break
+            self.state[name] = pressed
+
+    def draw(self):
+        if not self.active:
+            return
+        for name, (cx, cy), radius, idle, down in self.buttons:
+            screen.blit(down if self.state[name] else idle, (cx-radius, cy-radius))
+
+    def drawControlsHint(self):
+        if self.active:
+            screen.blit(self.hint, self.hintRect)
+
+touch = TouchControls()
+
+# Lets the existing code keep writing keys[pg.K_d], keys[pg.K_SPACE] ... : the touch buttons
+# simply count as those keys being held.
+class InputKeys():
+    def __init__(self):
+        self.real = pg.key.get_pressed()
+        self.extra = {pg.K_d: False, pg.K_a: False, pg.K_SPACE: False}
+
+    def update(self, real, touchControls):
+        self.real = real
+        self.extra[pg.K_d] = touchControls.state["push"]
+        self.extra[pg.K_a] = touchControls.state["brake"]
+        self.extra[pg.K_SPACE] = touchControls.state["jump"]
+
+    def __getitem__(self, key):
+        return self.real[key] or self.extra.get(key, False)
+
+keys = InputKeys()
+kbShift = False
+tempInt = 0
+menuButtons = [playButton, playAgainButton, controlsButton, menuButton, objectiveButton]
+
+def fingerAsMouse(event):
+    """Menu buttons listen for mouse clicks; turn finger taps into the same thing."""
+    if event.type == pg.FINGERDOWN:
+        return pg.event.Event(pg.MOUSEBUTTONDOWN, pos=(int(event.x*width), int(event.y*height)), button=1)
+    if event.type == pg.FINGERUP:
+        return pg.event.Event(pg.MOUSEBUTTONUP, pos=(int(event.x*width), int(event.y*height)), button=1)
+    return None
+
+def handleEvents():
+    global running, gameActive, kbShift
     for event in pg.event.get():
 
         if event.type == pg.QUIT:
             pg.quit() #opposite of pg init
             sys.exit(0) #stops while loop and ends cleanly
-        
+
         if event.type == pg.KEYDOWN:
             if event.key == pg.K_ESCAPE:
-                # bgMusic.stop()
-                # ambientSound.stop()
                 pg.mixer.stop()
                 pg.quit()
-                sys.exit(0) 
+                sys.exit(0)
             if event.key == pg.K_m:
-                
+
                 #if the menu key is hit then reset all characters and obstacles
                 grindLandSlide.stop()
                 rollingSound.stop()
@@ -1741,38 +1886,41 @@ while running:
                 player.reset(player_xPos,player_yPos)
 
             if event.key in (pg.K_LSHIFT, pg.K_RSHIFT):
-                player.shiftPressed = True
-                
+                kbShift = True
+
         elif event.type == pg.KEYUP:
             if event.key in (pg.K_LSHIFT, pg.K_RSHIFT):
-                player.shiftPressed = False
+                kbShift = False
 
-        #Mobile clicks
-        if event.type == pg.MOUSEBUTTONDOWN:
-            if jumpButton.buttonRect.collidepoint(event.pos):
-                player.jumpMobile = True
-                print("Button tapped!")
-        elif event.type == pg.MOUSEBUTTONUP:
-            print("Touch released")
-            player.jumpMobile = False
+        # touch screen (jump / push / brake / grind buttons)
+        touch.handleEvent(event)
 
         #PASS EVENTS TO OTHER OBJECTS IN CLASSES:
-        playButton.playerInput(event)
-        playAgainButton.playerInput(event)
-        controlsButton.playerInput(event)
-        menuButton.playerInput(event)
-        objectiveButton.playerInput(event)
+        asMouse = fingerAsMouse(event)
+        for btn in menuButtons:
+            btn.playerInput(event)
+            if asMouse is not None:
+                btn.playerInput(asMouse)
 
         if gameActive == True:
             pass
-            
+
         else:
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_RETURN or event.key == pg.K_KP_ENTER:
-                    resetALL()          
-                    "all the below moved to endScreen() and mainMenu()"          
-                    pass
-                pass
+                    resetALL()
+
+def gameStep(dt):
+    """Advance the game by exactly one 1/60 s tick (and draw it to `screen`)."""
+    global gameActive, specialItemSpawnCounter, spawnSpecialItemBool, tempInt
+
+    # ENTER MAIN MENU
+    if mainMenu.menuBool == True and endScreen.endBool == False:
+        mainMenu.update()
+    elif mainMenu.menuBool == False and endScreen.endBool == False:
+        gameActive = True
+    else:
+        pass
 
     #Do the following only if the game is active
     if gameActive == True:
@@ -1785,7 +1933,7 @@ while running:
         sky.update()
         bgBirds.update()
         world.update()
-        bgPowerLines.update()  
+        bgPowerLines.update()
         obstacle1.update()
 
         sky.draw()
@@ -1798,11 +1946,11 @@ while running:
         cash.update()
         player.update(dt)
         displayScore()
-        jumpButton.update()
+        touch.draw()
 
 
 
-        #randomly spawn special items so it feels more random and unique    
+        #randomly spawn special items so it feels more random and unique
         specialItemSpawnInt = random.randint(0, len(spawnSpecialItemList)-1)
         if spawnSpecialItemBool == True:
             spawnSpecialItemList[specialItemSpawnInt].update(dt)
@@ -1823,26 +1971,68 @@ while running:
                     spawnSpecialItemBool = True
                     specialItemSpawnCounter = 0
 
-                
+
         if finalSpecialItemCount() == totalSpecialPartsList(): #should be 15 items
-            # print("Complete Deck time!")
             if completeDeck.itemCount != 0:
                 completeDeck.update(dt)
             if completeDeck.rect.right < 0:
                 completeDeck.rect.right = -201
 
-        #LOSE CONDITION:    
+        #LOSE CONDITION:
         if player.loseConditionBool == True:
-            # print ("game false")
             gameActive = False
             endScreen.endBool = True
             pass
 
     else: #if game is not active do this below
         if endScreen.endBool == True:
-            endScreen.update(dt)  
+            endScreen.update(dt)
         pass
-    screen.blit(versionSurf, (0,0))          
-    #refreshes the screen with a frame rate of 60Hz
-    pg.display.flip()
-    # clock.tick(60)
+    screen.blit(versionSurf, (0,0))
+
+
+async def main():
+    global screen, keys, running
+    realScreen = screen
+    dummyScreen = pg.Surface((1, 1))   # catch-up ticks draw here (nobody sees them)
+    accumulator = 0.0
+
+    while running:
+        # real time since the last frame (clock.tick also caps us at 60 fps)
+        accumulator += min(clock.tick(60) / 1000, MAX_FRAME_TIME)
+
+        handleEvents()
+        touch.refresh()
+        keys.update(pg.key.get_pressed(), touch)
+        player.shiftPressed = kbShift or touch.state["grind"]
+        player.jumpMobile = touch.state["jump"]
+
+        # How many 1/60 s game ticks are owed? (small tolerance stops jitter on 60 Hz screens)
+        steps = int((accumulator + FIXED_DT*0.1) / FIXED_DT)
+        if steps > MAX_STEPS_PER_FRAME:
+            steps = MAX_STEPS_PER_FRAME
+            accumulator = 0.0           # too far behind: stop trying to catch up
+        else:
+            accumulator -= steps * FIXED_DT
+
+        # Only the last tick of a frame is drawn for real. If the computer is slow and
+        # several ticks are owed, the earlier ones just move things (no drawing), so the
+        # game keeps the right speed instead of running in slow motion.
+        for i in range(steps):
+            screen = realScreen if i == steps - 1 else dummyScreen
+            gameStep(FIXED_DT)
+        screen = realScreen
+
+        if steps > 0:
+            for btn in menuButtons:
+                btn.endFrame()
+            #refreshes the screen (at most 60 times a second)
+            pg.display.flip()
+
+        await asyncio.sleep(0)   # required by pygbag: lets the browser breathe every frame
+
+#debugging delete later:
+gameActive = False
+mainMenu.menuBool = True
+
+asyncio.run(main())

@@ -1,0 +1,15 @@
+<!-- Paste into the Shopify page (Edit HTML / "<>" button) in place of the plain link. -->
+<style>
+  .vmr-game { position: relative; width: 100%; max-width: 960px; margin: 0 auto; aspect-ratio: 16 / 9; background: #000; }
+  .vmr-game iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .vmr-rotate { display: none; text-align: center; padding: 8px; font-weight: bold; }
+  @media (orientation: portrait) and (max-width: 700px) { .vmr-rotate { display: block; } }
+  .vmr-fs { display: block; margin: 8px auto; padding: 10px 18px; font-size: 16px; }
+</style>
+<p class="vmr-rotate">Turn your phone sideways to play, then tap the game to start.</p>
+<div class="vmr-game" id="vmrGame">
+  <iframe src="https://loyalton.github.io/SkaterKittyPygame/build/web/index.html"
+          title="VMR Skater" allow="autoplay; fullscreen" allowfullscreen loading="lazy"></iframe>
+</div>
+<button class="vmr-fs" onclick="var e=document.getElementById('vmrGame'); (e.requestFullscreen||e.webkitRequestFullscreen).call(e)">Full screen</button>
+<p>Desktop: D = speed up, A = slow down, Space = ollie, Shift = grind. Phone/tablet: use the on-screen buttons.</p>
