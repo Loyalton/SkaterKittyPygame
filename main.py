@@ -298,9 +298,9 @@ class Player():
         #counter for speed and accelleration control
         self.dx = 0
         self.dy = 0
-        self.acceleration = 0.35/2  
+        self.acceleration = 0.35/3      # make the acceleration a little slower. old value was 0.35/2
         self.deceleration = 0.05
-        self.max_speed = 14 #12 feels like a good speed  
+        self.max_speed = 11 #12 feels like a good speed old val was 14 too fast
         self.movingRight = False
         self.movingLeft = False
         self.RailOllie = False
@@ -406,7 +406,7 @@ class Player():
                 
 
     def playerInput(self, dt):
-        self.ollieHeight = min(1500*dt-4, player_yPos-(width/2)+4) #ollie height difference based on dt for web(perfer fixed) vesus local (perfer dt)
+        self.ollieHeight = 0.866 * min(1500*dt-4, player_yPos-(width/2)+4) #ollie height difference based on dt for web(perfer fixed) vesus local (perfer dt)
         # self.playerMotion()       
 
         #CONTROLS by USER INPUT
