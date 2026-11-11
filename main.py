@@ -2136,9 +2136,6 @@ class Leaderboard():
             surf.blit(t1, (r.x + 14, y))
             surf.blit(t2, (r.x + 40, y))
             surf.blit(t3, (r.right - 14 - t3.get_width(), y))
-        if self.lastPoints is not None:
-            t = renderText(self.fontRow, "Your score: %d pts  (%s)" % (self.lastPoints, self.detail), (255, 255, 255))
-            surf.blit(t, t.get_rect(center=(width // 2, 186)))
         if self.entering:
             self.drawEntry(surf)
 
