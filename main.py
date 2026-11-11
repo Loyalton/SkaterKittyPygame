@@ -2259,8 +2259,8 @@ class TouchControls():
         elif self.mode == "bars":
             # tall solid pads inside the black bars on either side of the game
             self.barRects = [pg.rect.Rect(0, 0, barW, height), pg.rect.Rect(dispW - barW, 0, barW, height)]
-            self.left.build((10, 36, barW - 20, height - 72), 0.38, True, self.smallFont, 14)
-            self.right.build((dispW - barW + 10, 36, barW - 20, height - 72), 0.38, True, self.smallFont, 14)
+            self.left.build((10, 50, barW - 20, height - 86), 0.38, True, self.smallFont, 14)
+            self.right.build((dispW - barW + 10, 50, barW - 20, height - 86), 0.38, True, self.smallFont, 14)
         else:
             # in the black box under the zoomed game
             area = dispH - ZOOM_H

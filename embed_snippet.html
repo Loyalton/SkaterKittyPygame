@@ -10,7 +10,14 @@
   .vmr-game:-webkit-full-screen { aspect-ratio: auto; width: 100%; height: 100%; border-radius: 0; }
   /* fallback "full screen" for iPhone, whose Safari has no full screen mode for web pages */
   .vmr-game.vmr-fs { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; aspect-ratio: auto;
-                     border-radius: 0; z-index: 2147483646; }
+                     border-radius: 0; z-index: 2147483646; touch-action: none; overscroll-behavior: none;
+                     -webkit-user-select: none; user-select: none; }
+  html.vmr-lock, html.vmr-lock body { background: #000 !important; }
+  /* keep the game out of the iPhone notch / rounded corners / home bar (they stay black, never white) */
+  .vmr-game.vmr-fs { background: #000; }
+  .vmr-game.vmr-fs iframe { inset: auto; top: env(safe-area-inset-top, 0px); bottom: env(safe-area-inset-bottom, 0px);
+                            left: env(safe-area-inset-left, 0px); right: env(safe-area-inset-right, 0px);
+                            width: auto; height: auto; }
   body.vmr-noscroll { position: fixed; width: 100%; overflow: hidden; }
 
   /* "tap to play" poster: the game only starts downloading when this is tapped */
@@ -30,8 +37,8 @@
   .vmr-hint button { pointer-events: auto; position: absolute; right: 6px; top: 6px; width: 28px; height: 28px; border: 0;
                      border-radius: 50%; background: rgba(255,255,255,.25); color: #fff; font-size: 16px; cursor: pointer; }
 
-  .vmr-exit { display: none; position: absolute; top: 8px; right: 8px; z-index: 6; height: 36px; padding: 0 14px; border: 0;
-              border-radius: 18px; background: rgba(0,0,0,.6); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .vmr-exit { display: none; position: absolute; top: calc(6px + env(safe-area-inset-top, 0px)); right: calc(6px + env(safe-area-inset-right, 0px)); z-index: 6; height: 30px; padding: 0 11px; border: 0;
+              border-radius: 15px; background: rgba(0,0,0,.6); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
   .vmr-game:fullscreen .vmr-exit, .vmr-game:-webkit-full-screen .vmr-exit, .vmr-game.vmr-fs .vmr-exit { display: block; }
 
   .vmr-bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: center; margin: 10px 0 4px; }
@@ -78,7 +85,8 @@
   var box = document.getElementById('vmrGame'), frame = document.getElementById('vmrFrame'),
       poster = document.getElementById('vmrPoster'), hint = document.getElementById('vmrHint'),
       fsBtn = document.getElementById('vmrFsBtn'), exitBtn = document.getElementById('vmrExit');
-  var fake = false, savedScroll = 0, loaded = false;
+  var metaVP = null, savedVP = null;
+  var fake = false, savedScroll = 0, loaded = false, homeParent = null, homeNext = null;
 
   /* ---- start: the game is only downloaded once someone asks for it ---- */
   function hideHint() { hint.style.display = 'none'; }
@@ -122,7 +130,13 @@
   function isRealFs() { return document.fullscreenElement === box || document.webkitFullscreenElement === box; }
 
   function sizeFake() {
-    if (fake) { box.style.width = window.innerWidth + 'px'; box.style.height = window.innerHeight + 'px'; }
+    if (fake) {
+      var vv = window.visualViewport;      /* iPhone: the real visible size, with Safari's bars taken into account */
+      box.style.width = Math.round(vv ? vv.width : window.innerWidth) + 'px';
+      box.style.height = Math.round(vv ? vv.height : window.innerHeight) + 'px';
+      box.style.left = box.style.top = '0px';
+      window.scrollTo(0, 0);
+    }
   }
   function enterFake() {
     if (fake) return;
@@ -130,14 +144,28 @@
     savedScroll = window.pageYOffset || 0;
     document.body.style.top = (-savedScroll) + 'px';
     document.body.classList.add('vmr-noscroll');
+    /* move the game to the very top of the page: Shopify themes often wrap the page in boxes that break
+       "position: fixed", which is what stopped it filling the screen on iPhone */
+    /* ask iPhone Safari to paint under the notch / bars too (otherwise it leaves white side margins) */
+    metaVP = document.querySelector('meta[name=viewport]');
+    if (!metaVP) { metaVP = document.createElement('meta'); metaVP.name = 'viewport'; document.head.appendChild(metaVP); savedVP = null; }
+    else savedVP = metaVP.getAttribute('content');
+    if (!/viewport-fit/.test(metaVP.content || '')) metaVP.setAttribute('content', (savedVP || 'width=device-width, initial-scale=1') + ', viewport-fit=cover');
+    document.documentElement.classList.add('vmr-lock');
+    homeParent = box.parentNode; homeNext = box.nextSibling;
+    document.body.appendChild(box);
     box.classList.add('vmr-fs');
     sizeFake();
+    setTimeout(sizeFake, 300);
   }
   function leaveFake() {
     if (!fake) return;
     fake = false;
     box.classList.remove('vmr-fs');
-    box.style.width = box.style.height = '';
+    document.documentElement.classList.remove('vmr-lock');
+    if (metaVP) { if (savedVP === null) metaVP.parentNode.removeChild(metaVP); else metaVP.setAttribute('content', savedVP); metaVP = null; }
+    box.style.width = box.style.height = box.style.left = box.style.top = '';
+    if (homeParent) { homeParent.insertBefore(box, homeNext); homeParent = homeNext = null; }
     document.body.classList.remove('vmr-noscroll');
     document.body.style.top = '';
     window.scrollTo(0, savedScroll);
@@ -159,6 +187,7 @@
   fsBtn.addEventListener('click', function () { (isRealFs() || fake) ? leave() : enter(); });
   exitBtn.addEventListener('click', function () { leave(); unloadGame(); });   /* Exit = leave full screen AND reset the game */
   window.addEventListener('resize', sizeFake);
+  if (window.visualViewport) { window.visualViewport.addEventListener('resize', sizeFake); window.visualViewport.addEventListener('scroll', sizeFake); }
   window.addEventListener('orientationchange', function () { setTimeout(sizeFake, 300); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') leaveFake(); });
 })();
