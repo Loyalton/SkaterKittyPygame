@@ -17,11 +17,11 @@
  * (otherwise the old version keeps running).
  *
  * NOTE: scores come from the player's browser, so a determined person could send fake scores.
- * This script only accepts 3-letter initials and scores from 1 to MAX_SCORE. Delete rows by hand
+ * This script only accepts 3-letter initials and scores from 1 to MAX_SCORE (9999). Delete rows by hand
  * in the sheet if you ever need to.
  */
 var SHEET_NAME = 'Scores';
-var MAX_SCORE = 5999;
+var MAX_SCORE = 9999;
 
 function sheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();

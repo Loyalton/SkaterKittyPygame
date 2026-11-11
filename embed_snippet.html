@@ -96,7 +96,12 @@
     if (!loaded) return;
     loaded = false;
     try { frame.contentWindow.postMessage('sk-leave', '*'); } catch (e) {}
-    frame.src = 'about:blank';
+    /* swap in a fresh empty frame instead of navigating the old one: removing it never shows the
+       browser's "Leave site?" box, and the music stops instantly */
+    var fresh = frame.cloneNode(false);
+    fresh.removeAttribute('src');
+    frame.parentNode.replaceChild(fresh, frame);
+    frame = fresh;
     hideHint();
     poster.style.display = '';          /* the "tap to play" poster is back */
   }

@@ -1020,7 +1020,7 @@ class EndScreen():
             if self.dispScoreBool == False:
                 self.finalscore = displayScore()
                 self.dispScoreBool = True
-                leaderboard.onRunEnd(self.finalscore)   # arcade top-3: asks for initials if needed
+                leaderboard.onRunEnd(self.finalscore, cash.cashcount, finalSpecialItemCount())   # arcade top-3: asks for initials if needed
             self.finalScoreText = renderText(textFont1, f'{self.finalscore}', "blue")
             self.finalScoreRect = self.finalScoreText.get_rect(center = (350*0.625, height-300*0.625))
             # screen.blit(finalScoreText, finalScoreRect)
@@ -1787,7 +1787,8 @@ def totalSpecialPartsList():
 # you land on an obstacle in that time, stays engaged until you leave the obstacle. So a quick tap
 # before a rail works too, and if you don't land on anything the tap simply times out.
 # Keyboard players never see any of this.
-GRIND_GRACE_TICKS = 18          # 18 ticks = 0.3 s (set to 0 for strictly hold-to-grind)
+GRIND_GRACE_TICKS = 9           # 9 ticks = 0.15 s (set to 0 for strictly hold-to-grind)
+GRIND_SLIDE_TICKS = 8           # sliding from GRIND down to JUMP: grind switches off after this many ticks (0.13 s)
 PORTRAIT_MIN_EXTRA = 380        # least extra height (game pixels) under the zoomed game in portrait
 PORTRAIT_MAX_H = 1500           # tallest window we will ask for (keeps phones fast)
 PORTRAIT_ZOOM = 1.25            # upright phone: the game is shown this much bigger (1.0 = no zoom)
@@ -1866,10 +1867,16 @@ def jsEval(code, default=""):
 # The first time someone finishes a run they are asked for initials; after that they are only asked
 # when the run makes the top 3 (their last initials are pre-filled). Other runs are logged silently.
 LEADERBOARD_URL = ""            # e.g. "https://script.google.com/macros/s/XXXX/exec"  ("" = this device only)
-LB_KEY = "skaterKittyBoard"
+LB_KEY = "skaterKittyBoard2"
 LB_FILE = "leaderboard.json"
 LB_MAX_PLAYS = 100              # how many past runs the local log keeps
-LB_MAX_SCORE = 5999             # anything above this is treated as a mistake / cheat
+LB_MAX_SCORE = 9999             # anything above this is treated as a mistake / cheat
+# Score (points) = seconds survived + CASH_POINTS per dollar + PART_POINTS per skate part, so just
+# letting the timer run is not enough to win. Change these to re-balance.
+CASH_POINTS = 5
+PART_POINTS = 20
+# The board starts with these three so it is easy to get on it (30 s, 1 min, 2 min worth of points).
+DEFAULT_TOP = [{"n": "VMR", "s": 120}, {"n": "CAT", "s": 60}, {"n": "KIT", "s": 30}]
 
 
 def cleanName(s):
@@ -1879,7 +1886,9 @@ def cleanName(s):
 
 class Leaderboard():
     def __init__(self):
-        self.data = {"top": [], "last": "", "plays": [], "id": ""}
+        self.data = {"top": [dict(e) for e in DEFAULT_TOP], "last": "", "plays": [], "id": ""}
+        self.lastPoints = None
+        self.detail = ""
         self.remote = None            # top list from the shared board (None = not loaded)
         self.entering = False         # the initials pop-up is open
         self.letters = ["A", "A", "A"]
@@ -1923,7 +1932,9 @@ class Leaderboard():
             pass
 
     def top3(self):
-        rows = self.remote if self.remote else self.data["top"]
+        rows = list(self.data["top"])
+        if self.remote:
+            rows = list(self.remote) + [dict(e) for e in DEFAULT_TOP]
         return sorted(rows, key=lambda e: -e["s"])[:3]
 
     def qualifies(self, score):
@@ -1970,11 +1981,14 @@ class Leaderboard():
             self.fetchRemote()
 
     # ---------------- the run ended ----------------
-    def onRunEnd(self, scoreStr):
+    def onRunEnd(self, scoreStr, cashCount=0, partCount=0):
         try:
-            score = max(0, min(LB_MAX_SCORE, int(scoreStr)))
+            secs = int(scoreStr)
+            score = max(0, min(LB_MAX_SCORE, secs + CASH_POINTS * int(cashCount) + PART_POINTS * int(partCount)))
         except Exception:
             return
+        self.lastPoints = score
+        self.detail = "%ds + $%d + %d parts" % (secs, int(cashCount), int(partCount))
         self.hl = None
         self.pending = score
         if score <= 0:
@@ -2100,7 +2114,7 @@ class Leaderboard():
     def draw(self, surf):
         r = self.boardRect
         surf.blit(self.boardBG, r.topleft)
-        head = renderText(self.fontHead, "TOP 3 SKATERS", (255, 215, 0))
+        head = renderText(self.fontHead, "TOP 3 (POINTS)", (255, 215, 0))
         surf.blit(head, head.get_rect(center=(r.centerx, r.y + 14)))
         colors = [(255, 215, 0), (215, 215, 225), (205, 127, 50)]
         rows = self.top3()
@@ -2112,7 +2126,7 @@ class Leaderboard():
                 mine = (not hlDone) and self.hl is not None and (e["n"], e["s"]) == self.hl
                 hlDone = hlDone or mine
                 col = (121, 224, 48) if mine else colors[i]
-                rank, name, score = str(i + 1), e["n"], "%ds" % e["s"]
+                rank, name, score = str(i + 1), e["n"], "%d" % e["s"]
             else:
                 col = (110, 110, 125)
                 rank, name, score = str(i + 1), "---", "--"
@@ -2122,6 +2136,9 @@ class Leaderboard():
             surf.blit(t1, (r.x + 14, y))
             surf.blit(t2, (r.x + 40, y))
             surf.blit(t3, (r.right - 14 - t3.get_width(), y))
+        if self.lastPoints is not None:
+            t = renderText(self.fontRow, "Your score: %d pts  (%s)" % (self.lastPoints, self.detail), (255, 255, 255))
+            surf.blit(t, t.get_rect(center=(width // 2, 186)))
         if self.entering:
             self.drawEntry(surf)
 
@@ -2132,7 +2149,7 @@ class Leaderboard():
         title = "NEW HIGH SCORE!" if self.qualified else "ENTER YOUR INITIALS"
         t = renderText(self.fontMid, title, (255, 215, 0))
         surf.blit(t, t.get_rect(center=(cx, 82)))
-        t = renderText(self.fontRow, "You skated %d seconds" % self.pending, (255, 255, 255))
+        t = renderText(self.fontRow, "%d points  (%s)" % (self.pending, self.detail), (255, 255, 255))
         surf.blit(t, t.get_rect(center=(cx, 106)))
         blinkOn = (pg.time.get_ticks() // 350) % 2 == 0
         for i in range(3):
@@ -2251,7 +2268,7 @@ class TouchControls():
             y = dispH - 70 - padH
             self.left.build((60, y, 250, padH), 0.36, True, self.bigFont, 30)
             self.right.build((width - 60 - 250, y, 250, padH), 0.36, True, self.bigFont, 30)
-            self.panelHintRect = self.panelHint.get_rect(center=(width/2, ZOOM_H + 32))
+            self.panelHintRect = self.panelHint.get_rect(center=(width/2, ZOOM_H + 90))
         self.fingers.clear()
 
     # ---------------- input ----------------
@@ -2287,7 +2304,8 @@ class TouchControls():
         if pad is not None:
             rec["zone"] = pad.zone(y)
             if pad is self.right and rec["zone"] == "top":
-                rec["latched"] = True                  # GRIND stays on until this finger lifts
+                rec["latched"] = True                  # GRIND stays on while the thumb is on it ...
+                rec["slide"] = GRIND_SLIDE_TICKS       # ... and for a moment after it slides down to JUMP
                 self.armTicks = GRIND_GRACE_TICKS      # (a tap shorter than one frame still counts)
 
     def pointerUp(self, pid):
@@ -2319,6 +2337,14 @@ class TouchControls():
 
     def grindTick(self):
         """Once per 1/60 s game tick. True while the touch player counts as 'holding grind'."""
+        for rec in self.fingers.values():          # thumb slid from GRIND to JUMP: release grind shortly after
+            if rec["pad"] is self.right and rec["latched"] and rec["zone"] == "bottom":
+                rec["slide"] -= 1
+                if rec["slide"] <= 0:
+                    rec["latched"] = False
+                    self.grindHeld = any(f["latched"] for f in self.fingers.values())
+                    if not self.grindHeld:
+                        self.armTicks = 0
         if self.grindHeld:
             self.armTicks = GRIND_GRACE_TICKS
         elif self.armTicks > 0:
@@ -2348,7 +2374,7 @@ class TouchControls():
     def drawPanel(self, surface, top=0):
         """Portrait: the black control box under the game. Landscape bars: the two black side bars."""
         if self.mode == "portrait":
-            surface.fill(PANEL_COLOR, pg.rect.Rect(0, top, self.dispW, self.dispH - top))
+            drawRoad(surface, top)
             surface.blit(self.panelHint, self.panelHintRect)
         elif self.mode == "bars":
             for r in self.barRects:
@@ -2389,6 +2415,27 @@ tempInt = 0
 menuButtons = [playButton, playAgainButton, controlsButton, menuButton, objectiveButton]
 
 leaderboard = Leaderboard()
+
+# Portrait: the road at the bottom of the game picture carries on down behind the pads (fading to dark),
+# with lane dashes that scroll as the skater speeds up, so the whole screen looks like part of the game.
+roadCache = {}
+lanePos = 0.0
+def drawRoad(surface, top):
+    global lanePos
+    h = displayH - top
+    key = (top, displayH)
+    g = roadCache.get(key)
+    if g is None:
+        c = gameSurface.get_at((width // 2, height - 1))
+        g = pg.Surface((width, h)).convert()
+        for yy in range(h):
+            t = min(1.0, yy / 240.0)
+            g.fill(tuple(int(c[i] + (PANEL_COLOR[i] - c[i]) * t) for i in range(3)), (0, yy, width, 1))
+        roadCache[key] = g
+    surface.blit(g, (0, top))
+    lanePos = (lanePos + abs(player.dx) * PORTRAIT_ZOOM) % 160
+    for k in range(-1, 6):
+        surface.fill((205, 205, 215), (int(k * 160 - lanePos), top + 44, 70, 6))
 
 # frame state for the zoomed portrait view
 gameSurfaceBuf = None      # portrait only: offscreen 800x450 game picture
@@ -2438,6 +2485,13 @@ def installLeaveHooks():
       if (window.__skHooked) return; window.__skHooked = 1; window.__skHidden = 0;
       function audio(on){ try { var c = Module.SDL2 && Module.SDL2.audioContext; if (c) { on ? c.resume() : c.suspend(); } } catch(e){} }
       function gone(){ window.__skHidden = 1; audio(false); }
+      var addL = window.addEventListener;
+      addL.call(window, 'beforeunload', function(){          // page is being left: go quiet, come back if they stay
+        audio(false);
+        setTimeout(function(){ if (!document.hidden && !window.__skHidden) audio(true); }, 1500);
+      });
+      try { window.onbeforeunload = null; } catch(e){}
+      window.addEventListener = function(t, f, c){ if (t === 'beforeunload') return; return addL.call(this, t, f, c); };
       document.addEventListener('visibilitychange', function(){ if (document.hidden) gone(); else audio(true); });
       window.addEventListener('pagehide', gone);
       window.addEventListener('message', function(e){ if (e.data === 'sk-leave') gone(); });
@@ -2621,6 +2675,7 @@ def applyLayout(newW, newH, newBar):
     global display, gameSurface, screen, displayW, displayH, barOffset, hudLayer, zoomSrc, zoomDest
     displayW, displayH, barOffset = newW, newH, newBar
     display = pg.display.set_mode((newW, newH))
+    roadCache.clear()
     if newH > height:
         # upright: the game is drawn on an offscreen 800x450 picture; the part we show is scaled up into
         # the top of the window (composePortrait), the score/collectibles layer goes on top unzoomed.
