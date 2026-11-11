@@ -2720,6 +2720,8 @@ async def main():
                 changed = True
             if changed:
                 applyLayout(nw, nh, nb)
+        if frameNum == 12:
+            jsEval("try{window.parent.postMessage('sk-ready','*')}catch(e){}")   # tells the web page the game is up
         if frameNum % 10 == 3:
             pollLeave()
         if frameNum % 30 == 7:
