@@ -2,6 +2,7 @@ import asyncio          # pygbag needs an async main loop (see main() at the bot
 import pygame as pg
 import sys, os
 import random
+import json, time
 
 
 #Dev Notes:
@@ -34,7 +35,9 @@ screen = pg.display.set_mode(resolution) #, pg.RESIZABLE
 # track of the real window surface (`display`), the part the game is drawn on (`gameSurface`) and
 # the window height (`displayH`). `screen` stays what the rest of the game draws to.
 display = gameSurface = screen
-displayH = height
+displayW = width      # window width  (wider than the game when the landscape side bars are used)
+displayH = height     # window height (taller than the game when the phone is upright)
+barOffset = 0         # width of one side bar (0 = no side bars)
 clock = pg.time.Clock()
 
 
@@ -76,7 +79,7 @@ def renderText(font, text, color):
 
 #Version control
 
-versionSurf = textFont2.render("Version: 0.3.1", True, "white")
+versionSurf = textFont2.render("Version: 0.3.3", True, "white")
 
 
 # listFonts = pg.font.get_fonts()
@@ -186,14 +189,18 @@ grindPack = [grindLand, grindLandSlide, grindSlide]
 
 # #play sound
 # The music streams from disk instead of being fully decoded into memory (saves ~20 MB of RAM).
-try:
-    pg.mixer.music.load("audio/RomanoBeatbyLoyalton.ogg")
-    pg.mixer.music.play(-1) #-1 means to loop indefinitely
-except Exception:
-    bgMusic = pg.mixer.Sound("audio/RomanoBeatbyLoyalton.ogg")
-    bgMusic.play(-1)
-ambientSound.play(-1)
-ambientSound.set_volume(0.05)
+def startMusic():
+    """Start (or restart) the background music and the ambient street sound."""
+    global bgMusic
+    try:
+        pg.mixer.music.load("audio/RomanoBeatbyLoyalton.ogg")
+        pg.mixer.music.play(-1) #-1 means to loop indefinitely
+    except Exception:
+        bgMusic = pg.mixer.Sound("audio/RomanoBeatbyLoyalton.ogg")
+        bgMusic.play(-1)
+    ambientSound.play(-1)
+    ambientSound.set_volume(0.05)
+startMusic()
 
 
 class World():
@@ -1013,6 +1020,7 @@ class EndScreen():
             if self.dispScoreBool == False:
                 self.finalscore = displayScore()
                 self.dispScoreBool = True
+                leaderboard.onRunEnd(self.finalscore)   # arcade top-3: asks for initials if needed
             self.finalScoreText = renderText(textFont1, f'{self.finalscore}', "blue")
             self.finalScoreRect = self.finalScoreText.get_rect(center = (350*0.625, height-300*0.625))
             # screen.blit(finalScoreText, finalScoreRect)
@@ -1058,7 +1066,7 @@ class EndScreen():
         else:
             pass
 
-        if playAgainButton.mouseBool == True or keys[pg.K_RETURN] == True or keys[pg.K_KP_ENTER] == True:
+        if not leaderboard.locked() and (playAgainButton.mouseBool == True or keys[pg.K_RETURN] == True or keys[pg.K_KP_ENTER] == True):
             #move buttons out of the screen
             playAgainButton.buttonRect.bottom = 0 
             playButton.buttonRect.bottom = 0 
@@ -1114,6 +1122,7 @@ class EndScreen():
 
             screen.blit(self.finalScoreText, self.finalScoreRect)
             cash.finalScore()
+            leaderboard.draw(screen)
                     
 class MainMenu():
 
@@ -1779,8 +1788,16 @@ def totalSpecialPartsList():
 # before a rail works too, and if you don't land on anything the tap simply times out.
 # Keyboard players never see any of this.
 GRIND_GRACE_TICKS = 18          # 18 ticks = 0.3 s (set to 0 for strictly hold-to-grind)
-PORTRAIT_MIN_EXTRA = 420        # least extra height (game pixels) under the game in portrait
+PORTRAIT_MIN_EXTRA = 380        # least extra height (game pixels) under the zoomed game in portrait
 PORTRAIT_MAX_H = 1500           # tallest window we will ask for (keeps phones fast)
+PORTRAIT_ZOOM = 1.25            # upright phone: the game is shown this much bigger (1.0 = no zoom)
+ZOOM_W = int(round(width / PORTRAIT_ZOOM))      # part of the world (from the left) that is shown: 640 px of 800
+ZOOM_H = int(round(height * PORTRAIT_ZOOM))     # ... blown up to this height: 562 px
+HUD_H = 250                     # height of the collectibles/score layer that is NOT zoomed
+BAR_ASPECT_MIN = 1.95           # landscape phones at least this wide (width/height) get side bars
+BAR_MIN, BAR_MAX = 100, 170     # side bar width limits in game pixels
+PANEL_COLOR = (22, 24, 32)
+BAR_COLOR = (10, 10, 14)
 
 try:
     import platform as _platform   # under pygbag this one has .window (the browser)
@@ -1804,16 +1821,337 @@ def isTouchDevice():
     except Exception:
         return False
 
-def wantedDisplayHeight(touchDevice):
-    """Landscape (or no browser / no touch screen): the normal 800x450 window.
-    Portrait phone: same width, but taller so the pads fit underneath the game."""
+def wantedLayout(touchDevice):
+    """(window width, window height, side bar width) for the page we are in.
+    - normal / desktop / no browser:        800 x 450, no bars
+    - phone upright:                        800 x taller (zoomed game on top, control box underneath)
+    - phone sideways and wide (>= 1.95):    wider window, the game in the middle, a bar each side for the pads
+    - everything else sideways (iPad etc.): 800 x 450, see-through pads on top of the game"""
     vp = browserViewport()
     if vp is None or not touchDevice:
-        return height
+        return width, height, 0
     vw, vh = vp
-    if vh <= vw:
-        return height
-    return int(max(height + PORTRAIT_MIN_EXTRA, min(PORTRAIT_MAX_H, width * vh / vw)))
+    if vh > vw:
+        h = int(max(ZOOM_H + PORTRAIT_MIN_EXTRA, min(PORTRAIT_MAX_H, width * vh / vw)))
+        return width, h, 0
+    aspect = vw / vh
+    if aspect >= BAR_ASPECT_MIN:
+        bw = int(max(BAR_MIN, min(BAR_MAX, round((aspect * height - width) / 2))))
+        return width + 2 * bw, height, bw
+    return width, height, 0
+
+
+# ---------------------------------------------------------------------------
+# JAVASCRIPT BRIDGE (only does something in the browser; every call is wrapped in try/except)
+# ---------------------------------------------------------------------------
+def jsEval(code, default=""):
+    try:
+        r = _platform.window.eval(code)
+        return default if r is None else r
+    except Exception:
+        return default
+
+
+# ---------------------------------------------------------------------------
+# ARCADE LEADERBOARD  (top 3 on the end screen, 3-letter initials)
+# ---------------------------------------------------------------------------
+# Score = seconds survived (higher is better).
+# Where it is kept:
+#   1. in the browser's localStorage (so each phone/computer remembers its own scores) and, when the
+#      game runs as normal Python on a computer, in a file called leaderboard.json next to main.py;
+#   2. optionally ALSO on a shared board for everybody, if you fill in LEADERBOARD_URL below with
+#      the address of the Google Apps Script from leaderboard_server.gs (see the README). Every
+#      finished run is then added as a row (time, initials, score, device id) to your Google Sheet,
+#      which is the "file of who has played".
+# The first time someone finishes a run they are asked for initials; after that they are only asked
+# when the run makes the top 3 (their last initials are pre-filled). Other runs are logged silently.
+LEADERBOARD_URL = ""            # e.g. "https://script.google.com/macros/s/XXXX/exec"  ("" = this device only)
+LB_KEY = "skaterKittyBoard"
+LB_FILE = "leaderboard.json"
+LB_MAX_PLAYS = 100              # how many past runs the local log keeps
+LB_MAX_SCORE = 5999             # anything above this is treated as a mistake / cheat
+
+
+def cleanName(s):
+    s = "".join(ch for ch in str(s).upper() if "A" <= ch <= "Z")[:3]
+    return s
+
+
+class Leaderboard():
+    def __init__(self):
+        self.data = {"top": [], "last": "", "plays": [], "id": ""}
+        self.remote = None            # top list from the shared board (None = not loaded)
+        self.entering = False         # the initials pop-up is open
+        self.letters = ["A", "A", "A"]
+        self.cursor = 0
+        self.pending = 0              # the score being entered
+        self.qualified = False
+        self.waitRelease = False
+        self.hl = None                # (name, score) of this run, shown highlighted
+        self.refetchAt = 0
+        self.load()
+        if not self.data["id"]:
+            self.data["id"] = "".join(random.choice("abcdefghijkmnpqrstuvwxyz23456789") for _ in range(10))
+        self.buildUI()
+        self.fetchRemote()
+
+    # ---------------- storage ----------------
+    def load(self):
+        raw = jsEval("(function(){try{return localStorage.getItem(%s)||''}catch(e){return ''}})()" % json.dumps(LB_KEY))
+        raw = str(raw) if raw else ""
+        if not raw:
+            try:
+                with open(LB_FILE, encoding="utf-8") as f:
+                    raw = f.read()
+            except Exception:
+                raw = ""
+        try:
+            d = json.loads(raw)
+            top = [{"n": cleanName(e["n"]), "s": int(e["s"])} for e in d.get("top", [])][:10]
+            plays = d.get("plays", [])[-LB_MAX_PLAYS:]
+            self.data = {"top": top, "last": cleanName(d.get("last", "")), "plays": plays, "id": str(d.get("id", ""))[:16]}
+        except Exception:
+            pass
+
+    def save(self):
+        s = json.dumps(self.data)
+        jsEval("(function(){try{localStorage.setItem(%s,%s)}catch(e){}})()" % (json.dumps(LB_KEY), json.dumps(s)))
+        try:
+            with open(LB_FILE, "w", encoding="utf-8") as f:
+                f.write(s)
+        except Exception:
+            pass
+
+    def top3(self):
+        rows = self.remote if self.remote else self.data["top"]
+        return sorted(rows, key=lambda e: -e["s"])[:3]
+
+    def qualifies(self, score):
+        top = self.top3()
+        return score > 0 and (len(top) < 3 or score > top[-1]["s"])
+
+    def record(self, name, score):
+        name = cleanName(name) or "???"
+        self.data["plays"].append({"n": name, "s": score, "t": int(time.time())})
+        self.data["plays"] = self.data["plays"][-LB_MAX_PLAYS:]
+        self.data["top"].append({"n": name, "s": score})
+        self.data["top"] = sorted(self.data["top"], key=lambda e: -e["s"])[:10]
+        self.hl = (name, score)
+        self.save()
+        self.submitRemote(name, score)
+
+    # ---------------- shared board (optional) ----------------
+    def jsFetch(self, query):
+        if not LEADERBOARD_URL:
+            return
+        url = json.dumps(LEADERBOARD_URL + "?" + query)
+        jsEval("(function(){try{fetch(%s+'&_='+Date.now()).then(function(r){return r.text()})"
+               ".then(function(t){window.__skLB=t}).catch(function(e){})}catch(e){}})()" % url)
+
+    def fetchRemote(self):
+        self.jsFetch("action=top&n=3")
+
+    def submitRemote(self, name, score):
+        self.jsFetch("action=submit&name=%s&score=%d&id=%s" % (name, score, self.data["id"]))
+        self.refetchAt = pg.time.get_ticks() + 2500
+
+    def pollRemote(self):
+        if not LEADERBOARD_URL:
+            return
+        raw = str(jsEval("window.__skLB||''"))
+        if raw:
+            try:
+                rows = json.loads(raw).get("top", [])
+                self.remote = [{"n": cleanName(e["n"]), "s": int(e["s"])} for e in rows][:3]
+            except Exception:
+                pass
+        if self.refetchAt and pg.time.get_ticks() >= self.refetchAt:
+            self.refetchAt = 0
+            self.fetchRemote()
+
+    # ---------------- the run ended ----------------
+    def onRunEnd(self, scoreStr):
+        try:
+            score = max(0, min(LB_MAX_SCORE, int(scoreStr)))
+        except Exception:
+            return
+        self.hl = None
+        self.pending = score
+        if score <= 0:
+            return
+        self.qualified = self.qualifies(score)
+        if self.qualified or not self.data["last"]:
+            self.openEntry()
+        else:
+            self.record(self.data["last"], score)     # quietly keep the log
+
+    def openEntry(self):
+        last = self.data["last"]
+        self.letters = list(last) if len(last) == 3 else ["A", "A", "A"]
+        self.cursor = 0
+        self.entering = True
+        for b in menuButtons:          # a tap that was already on its way must not press a button
+            b.mouseBool = False
+            b.selectBool = False
+            b.releasePending = False
+
+    def cancel(self):
+        self.entering = False
+        self.waitRelease = False
+
+    def confirm(self):
+        name = "".join(self.letters)
+        self.data["last"] = name
+        self.record(name, self.pending)
+        self.entering = False
+        self.waitRelease = True        # the Enter that confirmed must not also restart the game
+
+    def locked(self):
+        """True while the pop-up is open (and until Enter is let go afterwards)."""
+        if self.entering:
+            return True
+        if self.waitRelease:
+            if keys.real[pg.K_RETURN] or keys.real[pg.K_KP_ENTER]:
+                return True
+            self.waitRelease = False
+        return False
+
+    # ---------------- input (only while the pop-up is open) ----------------
+    def handleEvent(self, event, gameEv, asMouse):
+        if event.type == pg.KEYDOWN:
+            k = event.key
+            if k in (pg.K_RETURN, pg.K_KP_ENTER):
+                self.confirm()
+            elif k == pg.K_ESCAPE:
+                self.entering = False            # skip: nothing is saved for this run
+            elif k == pg.K_BACKSPACE or k == pg.K_LEFT:
+                self.cursor = max(0, self.cursor - 1)
+            elif k == pg.K_RIGHT or k == pg.K_TAB:
+                self.cursor = min(2, self.cursor + 1)
+            elif k == pg.K_UP:
+                self.step(self.cursor, 1)
+            elif k == pg.K_DOWN:
+                self.step(self.cursor, -1)
+            else:
+                ch = getattr(event, "unicode", "")
+                if len(ch) == 1 and "a" <= ch.lower() <= "z":
+                    self.letters[self.cursor] = ch.upper()
+                    self.cursor = min(2, self.cursor + 1)
+            return
+        ev = asMouse if asMouse is not None else gameEv
+        if ev.type == pg.MOUSEBUTTONDOWN and getattr(ev, "button", 1) == 1:
+            if asMouse is None and getattr(ev, "touch", False) and touch.fingerSeen:
+                return                           # the finger event already did this tap
+            self.click(ev.pos)
+
+    def step(self, i, d):
+        self.letters[i] = chr((ord(self.letters[i]) - 65 + d) % 26 + 65)
+
+    def click(self, pos):
+        for i in range(3):
+            if self.upRects[i].collidepoint(pos):
+                self.cursor = i
+                self.step(i, 1)
+                return
+            if self.downRects[i].collidepoint(pos):
+                self.cursor = i
+                self.step(i, -1)
+                return
+            if self.boxRects[i].collidepoint(pos):
+                self.cursor = i
+                return
+        if self.okRect.collidepoint(pos):
+            self.confirm()
+        elif self.skipRect.collidepoint(pos):
+            self.entering = False
+
+    # ---------------- drawing ----------------
+    def buildUI(self):
+        self.fontRow = pg.font.Font(None, 22)
+        self.fontHead = pg.font.Font(None, 22)
+        self.fontBig = pg.font.Font(None, 68)
+        self.fontMid = pg.font.Font(None, 30)
+        self.fontSmall = pg.font.Font(None, 21)
+        # the small top-3 panel on the end screen
+        self.boardRect = pg.rect.Rect(615, 112, 177, 94)
+        bg = pg.Surface(self.boardRect.size, pg.SRCALPHA)
+        pg.draw.rect(bg, (8, 10, 22, 205), (0, 0) + self.boardRect.size, 0, border_radius=10)
+        pg.draw.rect(bg, (255, 215, 0, 230), (0, 0) + self.boardRect.size, 2, border_radius=10)
+        self.boardBG = bg.convert_alpha()
+        # the initials pop-up
+        self.popRect = pg.rect.Rect(0, 0, 400, 330)
+        self.popRect.center = (width // 2, height // 2)
+        pop = pg.Surface(self.popRect.size, pg.SRCALPHA)
+        pg.draw.rect(pop, (8, 10, 22, 240), (0, 0) + self.popRect.size, 0, border_radius=16)
+        pg.draw.rect(pop, (255, 215, 0, 255), (0, 0) + self.popRect.size, 3, border_radius=16)
+        self.popBG = pop.convert_alpha()
+        cx = width // 2
+        self.boxRects, self.upRects, self.downRects = [], [], []
+        for i in range(3):
+            x = cx + (i - 1) * 90
+            self.boxRects.append(pg.rect.Rect(x - 35, 170, 70, 70))
+            self.upRects.append(pg.rect.Rect(x - 36, 125, 72, 45))
+            self.downRects.append(pg.rect.Rect(x - 36, 240, 72, 45))
+        self.okRect = pg.rect.Rect(0, 0, 150, 46)
+        self.okRect.center = (cx, 330)
+        self.skipRect = pg.rect.Rect(0, 0, 110, 30)
+        self.skipRect.center = (cx, 372)
+
+    def draw(self, surf):
+        r = self.boardRect
+        surf.blit(self.boardBG, r.topleft)
+        head = renderText(self.fontHead, "TOP 3 SKATERS", (255, 215, 0))
+        surf.blit(head, head.get_rect(center=(r.centerx, r.y + 14)))
+        colors = [(255, 215, 0), (215, 215, 225), (205, 127, 50)]
+        rows = self.top3()
+        hlDone = False
+        for i in range(3):
+            y = r.y + 31 + i * 20
+            if i < len(rows):
+                e = rows[i]
+                mine = (not hlDone) and self.hl is not None and (e["n"], e["s"]) == self.hl
+                hlDone = hlDone or mine
+                col = (121, 224, 48) if mine else colors[i]
+                rank, name, score = str(i + 1), e["n"], "%ds" % e["s"]
+            else:
+                col = (110, 110, 125)
+                rank, name, score = str(i + 1), "---", "--"
+            t1 = renderText(self.fontRow, rank, col)
+            t2 = renderText(self.fontRow, name, col)
+            t3 = renderText(self.fontRow, score, col)
+            surf.blit(t1, (r.x + 14, y))
+            surf.blit(t2, (r.x + 40, y))
+            surf.blit(t3, (r.right - 14 - t3.get_width(), y))
+        if self.entering:
+            self.drawEntry(surf)
+
+    def drawEntry(self, surf):
+        p = self.popRect
+        surf.blit(self.popBG, p.topleft)
+        cx = p.centerx
+        title = "NEW HIGH SCORE!" if self.qualified else "ENTER YOUR INITIALS"
+        t = renderText(self.fontMid, title, (255, 215, 0))
+        surf.blit(t, t.get_rect(center=(cx, 82)))
+        t = renderText(self.fontRow, "You skated %d seconds" % self.pending, (255, 255, 255))
+        surf.blit(t, t.get_rect(center=(cx, 106)))
+        blinkOn = (pg.time.get_ticks() // 350) % 2 == 0
+        for i in range(3):
+            box = self.boxRects[i]
+            sel = (i == self.cursor)
+            pg.draw.rect(surf, (30, 34, 60), box, 0, border_radius=10)
+            pg.draw.rect(surf, (255, 215, 0) if (sel and blinkOn) else (120, 125, 150), box, 3, border_radius=10)
+            ch = renderText(self.fontBig, self.letters[i], (255, 255, 255))
+            surf.blit(ch, ch.get_rect(center=box.center))
+            u, d = self.upRects[i], self.downRects[i]
+            pg.draw.polygon(surf, (121, 224, 48), [(u.centerx, u.y + 8), (u.centerx - 18, u.bottom - 8), (u.centerx + 18, u.bottom - 8)])
+            pg.draw.polygon(surf, (121, 224, 48), [(d.centerx, d.bottom - 8), (d.centerx - 18, d.y + 8), (d.centerx + 18, d.y + 8)])
+        t = renderText(self.fontSmall, "Tap the arrows or type your initials", (170, 175, 195))
+        surf.blit(t, t.get_rect(center=(cx, 297)))
+        pg.draw.rect(surf, (121, 224, 48), self.okRect, 0, border_radius=12)
+        t = renderText(self.fontMid, "OK", (10, 20, 10))
+        surf.blit(t, t.get_rect(center=self.okRect.center))
+        t = renderText(self.fontSmall, "skip", (170, 175, 195))
+        surf.blit(t, t.get_rect(center=self.skipRect.center))
 
 
 class SlidePad():
@@ -1854,7 +2192,7 @@ class SlidePad():
         pg.draw.rect(surf, (255, 255, 255, 230 if on else 150), (0, 0, w, h), 3, border_radius=radius)
         text = font.render(label, True, (255, 255, 255))
         surf.blit(text, text.get_rect(center=(w // 2, h // 2)))
-        return surf.convert() if solid else surf.convert_alpha()
+        return surf.convert_alpha()   # keeps the rounded corners clean
 
     def hit(self, x, y):
         s = self.slop
@@ -1881,6 +2219,7 @@ class TouchControls():
         self.engaged = False
         self.lastGrind = False
         self.portrait = False
+        self.mode = "overlay"      # overlay (pads on the game) | bars (landscape side bars) | portrait
         self.smallFont = pg.font.Font(None, 26)
         self.bigFont = pg.font.Font(None, 46)
         self.left = SlidePad("BRAKE", "PUSH", (150, 150, 150), (121, 224, 48))
@@ -1889,25 +2228,30 @@ class TouchControls():
         self.hint = renderText(textFont2, "Touch screen:  left pad = BRAKE / PUSH     right pad = GRIND / JUMP     (slide between them)", "white")
         self.hintRect = self.hint.get_rect(center=(width/2, height-18))
         self.panelHint = renderText(textFont2, "Slide your thumb between the zones", (200, 200, 210))
-        self.setLayout(width, height)
+        self.setLayout(width, height, 0)
 
-    def setLayout(self, dispW, dispH):
+    def setLayout(self, dispW, dispH, barW=0):
         self.dispW, self.dispH = dispW, dispH
         self.portrait = dispH > height
-        if not self.portrait:
+        self.mode = "portrait" if self.portrait else ("bars" if barW else "overlay")
+        if self.mode == "overlay":
             # on top of the game, bottom corners (where the old round buttons were)
             y = height - 228
             self.left.build((14, y, 112, 199), 0.38, False, self.smallFont, 18)
             self.right.build((width - 14 - 112, y, 112, 199), 0.38, False, self.smallFont, 18)
+        elif self.mode == "bars":
+            # tall solid pads inside the black bars on either side of the game
+            self.barRects = [pg.rect.Rect(0, 0, barW, height), pg.rect.Rect(dispW - barW, 0, barW, height)]
+            self.left.build((10, 36, barW - 20, height - 72), 0.38, True, self.smallFont, 14)
+            self.right.build((dispW - barW + 10, 36, barW - 20, height - 72), 0.38, True, self.smallFont, 14)
         else:
-            # in the empty space under the game
-            area = dispH - height
+            # in the black box under the zoomed game
+            area = dispH - ZOOM_H
             padH = min(640, area - 140)
             y = dispH - 70 - padH
             self.left.build((60, y, 250, padH), 0.36, True, self.bigFont, 30)
             self.right.build((width - 60 - 250, y, 250, padH), 0.36, True, self.bigFont, 30)
-            self.panelRect = pg.rect.Rect(0, height, width, area)
-            self.panelHintRect = self.panelHint.get_rect(center=(width/2, height + 32))
+            self.panelHintRect = self.panelHint.get_rect(center=(width/2, ZOOM_H + 32))
         self.fingers.clear()
 
     # ---------------- input ----------------
@@ -1994,19 +2338,25 @@ class TouchControls():
         return (s["brake"], s["push"]), (grindOn, s["jump"])
 
     def drawOverlay(self):
-        """Landscape: translucent pads on top of the game (only once a finger has touched)."""
-        if not self.active or self.portrait:
+        """Landscape without side bars: translucent pads on top of the game (only once a finger has touched)."""
+        if not self.active or self.mode != "overlay":
             return
         (lt, lb), (rt, rb) = self.padStates()
         self.left.draw(screen, lt, lb)
         self.right.draw(screen, rt, rb)
 
-    def drawPanel(self, surface):
-        """Portrait: the dark panel under the game with the two pads."""
-        if not self.portrait:
+    def drawPanel(self, surface, top=0):
+        """Portrait: the black control box under the game. Landscape bars: the two black side bars."""
+        if self.mode == "portrait":
+            surface.fill(PANEL_COLOR, pg.rect.Rect(0, top, self.dispW, self.dispH - top))
+            surface.blit(self.panelHint, self.panelHintRect)
+        elif self.mode == "bars":
+            for r in self.barRects:
+                surface.fill(BAR_COLOR, r)
+            surface.fill((70, 72, 86), pg.rect.Rect(self.barRects[0].right - 2, 0, 2, height))
+            surface.fill((70, 72, 86), pg.rect.Rect(self.barRects[1].x, 0, 2, height))
+        else:
             return
-        surface.fill((22, 24, 32), self.panelRect)
-        surface.blit(self.panelHint, self.panelHintRect)
         (lt, lb), (rt, rb) = self.padStates()
         self.left.draw(surface, lt, lb)
         self.right.draw(surface, rt, rb)
@@ -2038,13 +2388,88 @@ kbShift = False
 tempInt = 0
 menuButtons = [playButton, playAgainButton, controlsButton, menuButton, objectiveButton]
 
+leaderboard = Leaderboard()
+
+# frame state for the zoomed portrait view
+gameSurfaceBuf = None      # portrait only: offscreen 800x450 game picture
+hudLayer = None            # portrait only: score + collectibles, drawn unzoomed on top
+zoomSrc = zoomDest = None
+frameZoom = False          # True when the frame that was just drawn is live gameplay (zoomed in portrait)
+
 def fingerAsMouse(event):
-    """Menu buttons listen for mouse clicks; turn finger taps into the same thing."""
+    """Menu buttons listen for mouse clicks; turn finger taps into the same thing (in game pixels)."""
     if event.type == pg.FINGERDOWN:
-        return pg.event.Event(pg.MOUSEBUTTONDOWN, pos=(int(event.x*width), int(event.y*displayH)), button=1)
+        return pg.event.Event(pg.MOUSEBUTTONDOWN, pos=(int(event.x*displayW) - barOffset, int(event.y*displayH)), button=1)
     if event.type == pg.FINGERUP:
-        return pg.event.Event(pg.MOUSEBUTTONUP, pos=(int(event.x*width), int(event.y*displayH)), button=1)
+        return pg.event.Event(pg.MOUSEBUTTONUP, pos=(int(event.x*displayW) - barOffset, int(event.y*displayH)), button=1)
     return None
+
+def gameEvent(event):
+    """Real mouse clicks come in window pixels; with side bars the game starts barOffset pixels in."""
+    if barOffset and event.type in (pg.MOUSEBUTTONDOWN, pg.MOUSEBUTTONUP):
+        return pg.event.Event(event.type, pos=(event.pos[0] - barOffset, event.pos[1]),
+                              button=getattr(event, "button", 1), touch=getattr(event, "touch", False))
+    return event
+
+def goToMenu():
+    """Back to the main menu with everything reset (the M key, and leaving the page)."""
+    global gameActive
+    grindLandSlide.stop()
+    rollingSound.stop()
+    controlsButton.mouseBool = False
+    mainMenu.menuBool = True
+    endScreen.endBool = False #og value uncomment
+    endScreen.dispScoreBool = False
+    leaderboard.cancel()
+    gameActive = False #UNCOMMENT
+    obstacle1.ObstacleRect.x = width
+    player.reset(player_xPos,player_yPos)
+
+# ---------------------------------------------------------------------------
+# LEAVING THE GAME (page hidden, phone screen off, tab closed)
+# ---------------------------------------------------------------------------
+# The embed page on your website already unloads the whole game in these cases (that is the
+# reliable part). This is the second line of defence from inside the game: a small JavaScript
+# listener raises a flag, and when we notice it we silence everything and go back to the menu.
+leaveSuspended = False
+
+def installLeaveHooks():
+    jsEval("""(function(){
+      if (window.__skHooked) return; window.__skHooked = 1; window.__skHidden = 0;
+      function audio(on){ try { var c = Module.SDL2 && Module.SDL2.audioContext; if (c) { on ? c.resume() : c.suspend(); } } catch(e){} }
+      function gone(){ window.__skHidden = 1; audio(false); }
+      document.addEventListener('visibilitychange', function(){ if (document.hidden) gone(); else audio(true); });
+      window.addEventListener('pagehide', gone);
+      window.addEventListener('message', function(e){ if (e.data === 'sk-leave') gone(); });
+    })()""")
+
+def suspendGame():
+    try:
+        pg.mixer.music.stop()
+        pg.mixer.stop()
+    except Exception:
+        pass
+    goToMenu()
+    touch.fingers.clear()
+    touch.armTicks = 0
+    touch.engaged = False
+    for b in menuButtons:
+        b.mouseBool = False
+        b.selectBool = False
+        b.releasePending = False
+
+def pollLeave():
+    """A few times a second: did the page get hidden / closed? (browser only)"""
+    global leaveSuspended
+    if _platform is None:
+        return
+    if jsEval("window.__skHidden||0"):
+        suspendGame()
+        leaveSuspended = True
+        jsEval("window.__skHidden=0")
+    if leaveSuspended and not jsEval("document.hidden?1:0"):
+        leaveSuspended = False
+        startMusic()                     # back on the page: menu is showing, music returns
 
 def handleEvents():
     global running, gameActive, kbShift
@@ -2054,22 +2479,23 @@ def handleEvents():
             pg.quit() #opposite of pg init
             sys.exit(0) #stops while loop and ends cleanly
 
+        gev = gameEvent(event)
+        asMouse = fingerAsMouse(event)
+
+        # the initials pop-up takes all input while it is open
+        if leaderboard.entering:
+            touch.handleEvent(event)
+            leaderboard.handleEvent(event, gev, asMouse)
+            continue
+
         if event.type == pg.KEYDOWN:
             if event.key == pg.K_ESCAPE:
                 pg.mixer.stop()
                 pg.quit()
                 sys.exit(0)
             if event.key == pg.K_m:
-
                 #if the menu key is hit then reset all characters and obstacles
-                grindLandSlide.stop()
-                rollingSound.stop()
-                controlsButton.mouseBool = False
-                mainMenu.menuBool = True
-                endScreen.endBool = False #og value uncomment
-                gameActive = False #UNCOMMENT
-                obstacle1.ObstacleRect.x = width
-                player.reset(player_xPos,player_yPos)
+                goToMenu()
 
             if event.key in (pg.K_LSHIFT, pg.K_RSHIFT):
                 kbShift = True
@@ -2082,9 +2508,8 @@ def handleEvents():
         touch.handleEvent(event)
 
         #PASS EVENTS TO OTHER OBJECTS IN CLASSES:
-        asMouse = fingerAsMouse(event)
         for btn in menuButtons:
-            btn.playerInput(event)
+            btn.playerInput(gev)
             if asMouse is not None:
                 btn.playerInput(asMouse)
 
@@ -2098,7 +2523,7 @@ def handleEvents():
 
 def gameStep(dt):
     """Advance the game by exactly one 1/60 s tick (and draw it to `screen`)."""
-    global gameActive, specialItemSpawnCounter, spawnSpecialItemBool, tempInt
+    global gameActive, specialItemSpawnCounter, spawnSpecialItemBool, tempInt, screen, frameZoom
 
     # ENTER MAIN MENU
     if mainMenu.menuBool == True and endScreen.endBool == False:
@@ -2115,6 +2540,11 @@ def gameStep(dt):
 
         #BLITTING CHARACTERS, BACKGROUND, AND OBJECTS ON THE SCREEN
 
+        frameZoom = True
+        # portrait: the score and collectibles go to their own layer so they are not zoomed
+        hudOn = touch.portrait and screen is gameSurface
+        if hudOn:
+            hudLayer.fill((0, 0, 0, 0))
         # #background and text
         sky.update()
         bgBirds.update()
@@ -2127,12 +2557,20 @@ def gameStep(dt):
         world.draw()
         nPC.update(dt)
         bgPowerLines.draw() #placed after npc to hide him behind the power lines
+        if hudOn:
+            screen = hudLayer
         specialItemDisp.update(dt)
+        if hudOn:
+            screen = gameSurface
         obstacle1.draw()
         cash.update()
         player.shiftPressed = kbShift or touch.grindTick()   # keyboard shift OR touch GRIND pad
         player.update(dt)
+        if hudOn:
+            screen = hudLayer
         displayScore()
+        if hudOn:
+            screen = gameSurface
         touch.drawOverlay()   # landscape only (portrait draws its pads under the game)
 
 
@@ -2172,24 +2610,41 @@ def gameStep(dt):
             pass
 
     else: #if game is not active do this below
+        frameZoom = False
         if endScreen.endBool == True:
             endScreen.update(dt)
         pass
-    screen.blit(versionSurf, (0,0))
+    (hudLayer if (frameZoom and touch.portrait and screen is gameSurface) else screen).blit(versionSurf, (0,0))
 
-
-def applyLayout(newH):
-    """Switch between the normal window (landscape) and the taller one (phone held upright)."""
-    global display, gameSurface, screen, displayH
-    displayH = newH
-    display = pg.display.set_mode((width, newH))
-    if newH == height:
-        gameSurface = display
+def applyLayout(newW, newH, newBar):
+    """Switch between: normal window | phone upright (taller) | phone sideways with side bars (wider)."""
+    global display, gameSurface, screen, displayW, displayH, barOffset, hudLayer, zoomSrc, zoomDest
+    displayW, displayH, barOffset = newW, newH, newBar
+    display = pg.display.set_mode((newW, newH))
+    if newH > height:
+        # upright: the game is drawn on an offscreen 800x450 picture; the part we show is scaled up into
+        # the top of the window (composePortrait), the score/collectibles layer goes on top unzoomed.
+        gameSurface = pg.Surface((width, height)).convert()
+        hudLayer = pg.Surface((width, HUD_H), pg.SRCALPHA).convert_alpha()
+        zoomSrc = gameSurface.subsurface(pg.rect.Rect(0, 0, ZOOM_W, height))
+        zoomDest = display.subsurface(pg.rect.Rect(0, 0, width, ZOOM_H))
+    elif newBar:
+        gameSurface = display.subsurface(pg.rect.Rect(newBar, 0, width, height))
     else:
-        # the game keeps drawing at 800x450 in the top part; the pads go in the space below
-        gameSurface = display.subsurface(pg.rect.Rect(0, 0, width, height))
+        gameSurface = display
     screen = gameSurface
-    touch.setLayout(width, newH)
+    touch.setLayout(newW, newH, newBar)
+
+def composePortrait():
+    """Portrait: zoomed gameplay (or the plain 800x450 picture for menus) + black control box."""
+    if frameZoom:
+        pg.transform.scale(zoomSrc, (width, ZOOM_H), zoomDest)
+        display.blit(hudLayer, (0, 0))
+        top = ZOOM_H
+    else:
+        display.blit(gameSurface, (0, 0))
+        top = height
+    touch.drawPanel(display, top)
 
 
 async def main():
@@ -2198,17 +2653,25 @@ async def main():
     accumulator = 0.0
     frameNum = 0
     touchDevice = isTouchDevice()
+    installLeaveHooks()
 
     while running:
         # real time since the last frame (clock.tick also caps us at 60 fps)
         accumulator += min(clock.tick(60) / 1000, MAX_FRAME_TIME)
 
-        # a few times a second: is the page now tall (phone upright) or wide (phone sideways)?
         frameNum += 1
+        # a few times a second: is the page tall (phone upright), wide (sideways) ...?
         if touchDevice and frameNum % 15 == 1:
-            newH = wantedDisplayHeight(touchDevice)
-            if newH != displayH and (newH == height or displayH == height or abs(newH - displayH) > 24):
-                applyLayout(newH)
+            nw, nh, nb = wantedLayout(touchDevice)
+            changed = (nw != displayW) or (nb != barOffset)
+            if nh != displayH and (nh == height or displayH == height or abs(nh - displayH) > 24):
+                changed = True
+            if changed:
+                applyLayout(nw, nh, nb)
+        if frameNum % 10 == 3:
+            pollLeave()
+        if frameNum % 30 == 7:
+            leaderboard.pollRemote()
 
         handleEvents()
         touch.refresh()
@@ -2234,7 +2697,10 @@ async def main():
         if steps > 0:
             for btn in menuButtons:
                 btn.endFrame()
-            touch.drawPanel(display)    # portrait only: pads in the space under the game
+            if touch.mode == "portrait":
+                composePortrait()            # zoomed game + black control box with the pads
+            elif touch.mode == "bars":
+                touch.drawPanel(display)     # the two black side bars with the pads
             #refreshes the screen (at most 60 times a second)
             pg.display.flip()
 

@@ -1,4 +1,4 @@
-<!-- Skater Kitty embed v2 - paste into the Shopify page with the <> (Show HTML) button.
+<!-- Skater Kitty embed v3 - paste into the Shopify page with the <> (Show HTML) button.
      Replaces the old embed completely. To change the game address, edit GAME_URL near the bottom. -->
 <style>
   .vmr-wrap { max-width: 960px; margin: 0 auto; }
@@ -64,7 +64,7 @@
     <button type="button" id="vmrFsBtn">&#9974; Full screen</button>
     <a href="https://loyalton.github.io/SkaterKittyPygame/build/web/index.html" target="_blank" rel="noopener">Open the game on its own page</a>
   </div>
-  <p class="vmr-help vmr-touch-tip"><b>On a phone:</b> tap <b>Full screen</b> for bigger buttons. Play upright (buttons under the game) or turn your phone sideways.</p>
+  <p class="vmr-help vmr-touch-tip"><b>On a phone:</b> tap <b>Full screen</b> for bigger buttons. Play upright (buttons under the game) or turn your phone sideways. Leaving the page, locking the phone or tapping <b>Exit</b> stops the music and resets the game.</p>
   <p class="vmr-help">
     <b>Keyboard:</b> D = speed up, A = slow down, Space = ollie (hold, then let go), Shift = grind.<br>
     <b>Touch:</b> left pad = BRAKE (top) / PUSH (bottom), right pad = GRIND (top) / JUMP (bottom). Keep your thumb down and slide between the zones.
@@ -78,18 +78,31 @@
   var box = document.getElementById('vmrGame'), frame = document.getElementById('vmrFrame'),
       poster = document.getElementById('vmrPoster'), hint = document.getElementById('vmrHint'),
       fsBtn = document.getElementById('vmrFsBtn'), exitBtn = document.getElementById('vmrExit');
-  var fake = false, savedScroll = 0;
+  var fake = false, savedScroll = 0, loaded = false;
 
   /* ---- start: the game is only downloaded once someone asks for it ---- */
   function hideHint() { hint.style.display = 'none'; }
   function startGame() {
-    if (!frame.getAttribute('src')) {
+    if (!loaded) {
+      loaded = true;
       frame.setAttribute('src', GAME_URL);
       hint.style.display = 'block';
       setTimeout(hideHint, 120000);
     }
     poster.style.display = 'none';
   }
+  /* ---- leave: unloading the frame stops the music at once and the next play starts from the menu ---- */
+  function unloadGame() {
+    if (!loaded) return;
+    loaded = false;
+    try { frame.contentWindow.postMessage('sk-leave', '*'); } catch (e) {}
+    frame.src = 'about:blank';
+    hideHint();
+    poster.style.display = '';          /* the "tap to play" poster is back */
+  }
+  /* page hidden: tab switched, app switched, phone screen off, page closed or navigated away */
+  document.addEventListener('visibilitychange', function () { if (document.hidden) unloadGame(); });
+  window.addEventListener('pagehide', unloadGame);
   poster.addEventListener('click', startGame);
   poster.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startGame(); }
@@ -139,7 +152,7 @@
     leaveFake();
   }
   fsBtn.addEventListener('click', function () { (isRealFs() || fake) ? leave() : enter(); });
-  exitBtn.addEventListener('click', leave);
+  exitBtn.addEventListener('click', function () { leave(); unloadGame(); });   /* Exit = leave full screen AND reset the game */
   window.addEventListener('resize', sizeFake);
   window.addEventListener('orientationchange', function () { setTimeout(sizeFake, 300); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') leaveFake(); });
