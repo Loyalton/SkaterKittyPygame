@@ -30,6 +30,11 @@ width = int(1280 *0.625)
 height = int(720 *0.625)
 resolution = (width, height)
 screen = pg.display.set_mode(resolution) #, pg.RESIZABLE
+# On a phone held upright the window gets taller (the touch pads live under the game), so we keep
+# track of the real window surface (`display`), the part the game is drawn on (`gameSurface`) and
+# the window height (`displayH`). `screen` stays what the rest of the game draws to.
+display = gameSurface = screen
+displayH = height
 clock = pg.time.Clock()
 
 
@@ -49,6 +54,13 @@ FIXED_DT = 1 / 60
 MAX_STEPS_PER_FRAME = 4      # never try to catch up more than this many steps in one frame
 MAX_FRAME_TIME = 0.25        # ignore long pauses (tab switch etc.)
 
+# ---------------------------------------------------------------------------
+# FEEL / TUNING  (the values you asked for after play-testing; change them here)
+# ---------------------------------------------------------------------------
+MAX_SPEED = 11.2              # was 14  (80%)
+ACCELERATION = 0.35/3         # was 0.35/2  (takes a bit longer to reach top speed)
+OLLIE_SCALE = 0.866           # was 1.0. Jump height goes with the square of this: 0.866 -> 75% height
+
 # font.render() is slow (especially in the browser). Text that doesn't change is
 # rendered once and re-used.
 _textCache = {}
@@ -64,7 +76,7 @@ def renderText(font, text, color):
 
 #Version control
 
-versionSurf = textFont2.render("Version: 0.3.0", True, "white")
+versionSurf = textFont2.render("Version: 0.3.1", True, "white")
 
 
 # listFonts = pg.font.get_fonts()
@@ -298,9 +310,9 @@ class Player():
         #counter for speed and accelleration control
         self.dx = 0
         self.dy = 0
-        self.acceleration = 0.35/3      # make the acceleration a little slower. old value was 0.35/2
+        self.acceleration = ACCELERATION
         self.deceleration = 0.05
-        self.max_speed = 11 #12 feels like a good speed old val was 14 too fast
+        self.max_speed = MAX_SPEED
         self.movingRight = False
         self.movingLeft = False
         self.RailOllie = False
@@ -406,7 +418,7 @@ class Player():
                 
 
     def playerInput(self, dt):
-        self.ollieHeight = 0.866 * min(1500*dt-4, player_yPos-(width/2)+4) #ollie height difference based on dt for web(perfer fixed) vesus local (perfer dt)
+        self.ollieHeight = OLLIE_SCALE * min(1500*dt-4, player_yPos-(width/2)+4) #ollie height difference based on dt for web(perfer fixed) vesus local (perfer dt)
         # self.playerMotion()       
 
         #CONTROLS by USER INPUT
@@ -1752,78 +1764,252 @@ def totalSpecialPartsList():
 # ---------------------------------------------------------------------------
 # TOUCH CONTROLS (phones / tablets)
 # ---------------------------------------------------------------------------
-# The game has four inputs. On a touch screen they become four on-screen buttons:
-#     PUSH  = D key      (hold to speed up)         <- left thumb
-#     BRAKE = A key      (hold to slow down)        <- left thumb (small)
-#     JUMP  = SPACE key  (hold to crouch, let go to ollie)   <- right thumb
-#     GRIND = SHIFT key  (hold while landing on a rail)      <- right thumb (small)
-# The buttons only appear after the first touch, so keyboard players never see them.
-# Fingers are tracked separately, so both thumbs can be down at the same time.
+# The game has four inputs, which on a touch screen become TWO "slide pads", one per thumb:
+#
+#     LEFT PAD   top = BRAKE (a key)       bottom = PUSH (d key)
+#     RIGHT PAD  top = GRIND (shift key)   bottom = JUMP (space key)
+#
+# A finger that lands on a pad stays attached to it until it lifts, even if it slides off the
+# edge, and the zone it is over is worked out from where it is. So you can hold PUSH and slide up
+# to BRAKE (and back) without letting go.
+# On the right pad GRIND latches: once your thumb has touched the GRIND zone it stays engaged
+# until you lift your thumb, so you can slide down to JUMP and ollie off the rail while still
+# grinding. After you lift, GRIND stays "armed" for a short grace time (GRIND_GRACE_TICKS) and, if
+# you land on an obstacle in that time, stays engaged until you leave the obstacle. So a quick tap
+# before a rail works too, and if you don't land on anything the tap simply times out.
+# Keyboard players never see any of this.
+GRIND_GRACE_TICKS = 18          # 18 ticks = 0.3 s (set to 0 for strictly hold-to-grind)
+PORTRAIT_MIN_EXTRA = 420        # least extra height (game pixels) under the game in portrait
+PORTRAIT_MAX_H = 1500           # tallest window we will ask for (keeps phones fast)
+
+try:
+    import platform as _platform   # under pygbag this one has .window (the browser)
+except Exception:
+    _platform = None
+
+def browserViewport():
+    """(w, h) of the web page the game is in, or None when not running in a browser."""
+    try:
+        w = float(_platform.window.innerWidth)
+        h = float(_platform.window.innerHeight)
+        if w > 0 and h > 0:
+            return w, h
+    except Exception:
+        pass
+    return None
+
+def isTouchDevice():
+    try:
+        return int(_platform.window.navigator.maxTouchPoints) > 0
+    except Exception:
+        return False
+
+def wantedDisplayHeight(touchDevice):
+    """Landscape (or no browser / no touch screen): the normal 800x450 window.
+    Portrait phone: same width, but taller so the pads fit underneath the game."""
+    vp = browserViewport()
+    if vp is None or not touchDevice:
+        return height
+    vw, vh = vp
+    if vh <= vw:
+        return height
+    return int(max(height + PORTRAIT_MIN_EXTRA, min(PORTRAIT_MAX_H, width * vh / vw)))
+
+
+class SlidePad():
+    """A rounded pad with a top zone and a bottom zone."""
+    def __init__(self, topLabel, bottomLabel, topColor, bottomColor):
+        self.topLabel, self.bottomLabel = topLabel, bottomLabel
+        self.topColor, self.bottomColor = topColor, bottomColor
+        self.rect = pg.rect.Rect(0, 0, 10, 10)
+        self.splitY = 0
+        self.slop = 18
+        self.parts = []   # (pos, surface off, surface on) for top and bottom zone
+
+    def build(self, rect, topFrac, solid, font, slop):
+        self.rect = pg.rect.Rect(rect)
+        self.slop = slop
+        topH = int(self.rect.h * topFrac)
+        self.splitY = self.rect.y + topH
+        gap = 6
+        self.parts = []
+        zones = [
+            (self.rect.y, topH - gap // 2, self.topLabel, self.topColor),
+            (self.splitY + gap // 2, self.rect.bottom - self.splitY - gap // 2, self.bottomLabel, self.bottomColor),
+        ]
+        for y, h, label, color in zones:
+            off = self.makeSurf(self.rect.w, h, label, color, False, solid, font)
+            on = self.makeSurf(self.rect.w, h, label, color, True, solid, font)
+            self.parts.append(((self.rect.x, y), off, on))
+
+    def makeSurf(self, w, h, label, color, on, solid, font):
+        surf = pg.Surface((w, h), pg.SRCALPHA)
+        if solid:      # portrait panel: opaque (fast), idle zones are a dark version of the colour
+            c = color if on else (int(color[0]*0.42), int(color[1]*0.42), int(color[2]*0.42))
+            fill = (c[0], c[1], c[2], 255)
+        else:          # landscape: see-through over the game, like the old round buttons
+            fill = (color[0], color[1], color[2], 235 if on else 120)
+        radius = min(w, h) // 3
+        pg.draw.rect(surf, fill, (0, 0, w, h), 0, border_radius=radius)
+        pg.draw.rect(surf, (255, 255, 255, 230 if on else 150), (0, 0, w, h), 3, border_radius=radius)
+        text = font.render(label, True, (255, 255, 255))
+        surf.blit(text, text.get_rect(center=(w // 2, h // 2)))
+        return surf.convert() if solid else surf.convert_alpha()
+
+    def hit(self, x, y):
+        s = self.slop
+        return self.rect.x - s <= x <= self.rect.right + s and self.rect.y - s <= y <= self.rect.bottom + s
+
+    def zone(self, y):
+        return "top" if y < self.splitY else "bottom"
+
+    def draw(self, surface, topOn, bottomOn):
+        (p0, off0, on0), (p1, off1, on1) = self.parts
+        surface.blit(on0 if topOn else off0, p0)
+        surface.blit(on1 if bottomOn else off1, p1)
+
+
 class TouchControls():
     def __init__(self):
-        self.active = False        # turns True the first time the screen is touched
+        self.active = False        # True after the first touch (landscape: pads only show then)
         self.fingerSeen = False    # True once real finger events arrive
-        self.pointers = {}         # finger id -> (x, y) in game pixels
+        self.fingers = {}          # finger id -> {"pad", "zone", "latched", "seen"}
         self.state = {"push": False, "brake": False, "jump": False, "grind": False}
-
-        # name, label, centre, radius, colour
-        layout = [
-            ("push",  "PUSH",  (70, height-85),  56, (121, 224, 48)),
-            ("brake", "BRAKE", (70, height-190), 38, (150, 150, 150)),
-            ("jump",  "JUMP",  (width-70, height-85), 56, (48, 157, 224)),
-            ("grind", "GRIND", (width-195, height-60), 42, (224, 48, 74)),
-        ]
-        labelFont = pg.font.Font(None, 26)
-        self.buttons = []
-        for name, label, center, radius, color in layout:
-            idle = self.makeButtonSurf(label, radius, color, labelFont, 120)
-            down = self.makeButtonSurf(label, radius, color, labelFont, 235)
-            self.buttons.append((name, center, radius, idle, down))
-
-        self.hint = renderText(textFont2, "Touch screen:  PUSH = d    BRAKE = a    JUMP = space    GRIND = shift", "white")
+        self.jumpPulse = False     # a tap so quick that no frame saw it still counts as a jump
+        self.grindHeld = False
+        self.armTicks = 0
+        self.engaged = False
+        self.lastGrind = False
+        self.portrait = False
+        self.smallFont = pg.font.Font(None, 26)
+        self.bigFont = pg.font.Font(None, 46)
+        self.left = SlidePad("BRAKE", "PUSH", (150, 150, 150), (121, 224, 48))
+        self.right = SlidePad("GRIND", "JUMP", (224, 48, 74), (48, 157, 224))
+        self.pads = [self.left, self.right]
+        self.hint = renderText(textFont2, "Touch screen:  left pad = BRAKE / PUSH     right pad = GRIND / JUMP     (slide between them)", "white")
         self.hintRect = self.hint.get_rect(center=(width/2, height-18))
+        self.panelHint = renderText(textFont2, "Slide your thumb between the zones", (200, 200, 210))
+        self.setLayout(width, height)
 
-    def makeButtonSurf(self, label, radius, color, font, alpha):
-        surf = pg.Surface((radius*2, radius*2), pg.SRCALPHA)
-        pg.draw.circle(surf, (color[0], color[1], color[2], alpha), (radius, radius), radius)
-        pg.draw.circle(surf, (255, 255, 255, 220), (radius, radius), radius, 3)
-        text = font.render(label, True, (255, 255, 255))
-        surf.blit(text, text.get_rect(center=(radius, radius)))
-        return surf
+    def setLayout(self, dispW, dispH):
+        self.dispW, self.dispH = dispW, dispH
+        self.portrait = dispH > height
+        if not self.portrait:
+            # on top of the game, bottom corners (where the old round buttons were)
+            y = height - 228
+            self.left.build((14, y, 112, 199), 0.38, False, self.smallFont, 18)
+            self.right.build((width - 14 - 112, y, 112, 199), 0.38, False, self.smallFont, 18)
+        else:
+            # in the empty space under the game
+            area = dispH - height
+            padH = min(640, area - 140)
+            y = dispH - 70 - padH
+            self.left.build((60, y, 250, padH), 0.36, True, self.bigFont, 30)
+            self.right.build((width - 60 - 250, y, 250, padH), 0.36, True, self.bigFont, 30)
+            self.panelRect = pg.rect.Rect(0, height, width, area)
+            self.panelHintRect = self.panelHint.get_rect(center=(width/2, height + 32))
+        self.fingers.clear()
 
+    # ---------------- input ----------------
     def handleEvent(self, event):
         t = event.type
         if t == pg.FINGERDOWN or t == pg.FINGERMOTION:
             self.active = True
             self.fingerSeen = True
-            self.pointers[event.finger_id] = (event.x*width, event.y*height)
+            self.pointerMove(event.finger_id, event.x*self.dispW, event.y*self.dispH)
         elif t == pg.FINGERUP:
-            self.pointers.pop(event.finger_id, None)
+            self.pointerUp(event.finger_id)
         elif getattr(event, "touch", False) and not self.fingerSeen:
             # fallback: some browsers only deliver touches as (touch-flagged) mouse events
-            if t == pg.MOUSEBUTTONDOWN or t == pg.MOUSEMOTION and "mouse" in self.pointers:
+            if t == pg.MOUSEBUTTONDOWN or (t == pg.MOUSEMOTION and "mouse" in self.fingers):
                 self.active = True
-                self.pointers["mouse"] = event.pos
+                self.pointerMove("mouse", event.pos[0], event.pos[1])
             elif t == pg.MOUSEBUTTONUP:
-                self.pointers.pop("mouse", None)
+                self.pointerUp("mouse")
         elif t == getattr(pg, "WINDOWFOCUSLOST", -1):
-            self.pointers.clear()   # don't leave a button stuck down if the page loses focus
+            self.fingers.clear()    # don't leave a zone stuck down if the page loses focus
+            self.armTicks = 0
+
+    def pointerMove(self, pid, x, y):
+        rec = self.fingers.get(pid)
+        if rec is None:
+            rec = self.fingers[pid] = {"pad": None, "zone": "top", "latched": False, "seen": False}
+        if rec["pad"] is None:          # a finger attaches to the first pad it touches
+            for pad in self.pads:
+                if pad.hit(x, y):
+                    rec["pad"] = pad
+                    break
+        pad = rec["pad"]
+        if pad is not None:
+            rec["zone"] = pad.zone(y)
+            if pad is self.right and rec["zone"] == "top":
+                rec["latched"] = True                  # GRIND stays on until this finger lifts
+                self.armTicks = GRIND_GRACE_TICKS      # (a tap shorter than one frame still counts)
+
+    def pointerUp(self, pid):
+        rec = self.fingers.pop(pid, None)
+        if rec is not None and rec["pad"] is self.right and rec["zone"] == "bottom" and not rec["seen"]:
+            self.jumpPulse = True
 
     def refresh(self):
-        for name, (cx, cy), radius, idle, down in self.buttons:
-            r2 = (radius + 12) ** 2     # a little extra reach so thumbs don't miss
-            pressed = False
-            for px, py in self.pointers.values():
-                if (px-cx)**2 + (py-cy)**2 <= r2:
-                    pressed = True
-                    break
-            self.state[name] = pressed
+        """Once per frame: turn the fingers into the four key states."""
+        push = brake = jump = held = False
+        for rec in self.fingers.values():
+            rec["seen"] = True
+            if rec["pad"] is self.left:
+                if rec["zone"] == "top":
+                    brake = True
+                else:
+                    push = True
+            elif rec["pad"] is self.right:
+                if rec["zone"] == "bottom":
+                    jump = True
+                if rec["latched"]:
+                    held = True
+        if self.jumpPulse:
+            jump = True
+            self.jumpPulse = False
+        self.grindHeld = held
+        s = self.state
+        s["push"], s["brake"], s["jump"], s["grind"] = push, brake, jump, held
 
-    def draw(self):
-        if not self.active:
+    def grindTick(self):
+        """Once per 1/60 s game tick. True while the touch player counts as 'holding grind'."""
+        if self.grindHeld:
+            self.armTicks = GRIND_GRACE_TICKS
+        elif self.armTicks > 0:
+            self.armTicks -= 1
+        # landed on something while grind was on -> stay engaged until we are off it again
+        if player.grindBool and self.lastGrind:
+            self.engaged = True
+        elif not player.grindBool:
+            self.engaged = False
+        self.lastGrind = self.grindHeld or self.armTicks > 0 or self.engaged
+        return self.lastGrind
+
+    # ---------------- drawing ----------------
+    def padStates(self):
+        s = self.state
+        grindOn = self.grindHeld or self.armTicks > 0 or self.engaged
+        return (s["brake"], s["push"]), (grindOn, s["jump"])
+
+    def drawOverlay(self):
+        """Landscape: translucent pads on top of the game (only once a finger has touched)."""
+        if not self.active or self.portrait:
             return
-        for name, (cx, cy), radius, idle, down in self.buttons:
-            screen.blit(down if self.state[name] else idle, (cx-radius, cy-radius))
+        (lt, lb), (rt, rb) = self.padStates()
+        self.left.draw(screen, lt, lb)
+        self.right.draw(screen, rt, rb)
+
+    def drawPanel(self, surface):
+        """Portrait: the dark panel under the game with the two pads."""
+        if not self.portrait:
+            return
+        surface.fill((22, 24, 32), self.panelRect)
+        surface.blit(self.panelHint, self.panelHintRect)
+        (lt, lb), (rt, rb) = self.padStates()
+        self.left.draw(surface, lt, lb)
+        self.right.draw(surface, rt, rb)
 
     def drawControlsHint(self):
         if self.active:
@@ -1855,9 +2041,9 @@ menuButtons = [playButton, playAgainButton, controlsButton, menuButton, objectiv
 def fingerAsMouse(event):
     """Menu buttons listen for mouse clicks; turn finger taps into the same thing."""
     if event.type == pg.FINGERDOWN:
-        return pg.event.Event(pg.MOUSEBUTTONDOWN, pos=(int(event.x*width), int(event.y*height)), button=1)
+        return pg.event.Event(pg.MOUSEBUTTONDOWN, pos=(int(event.x*width), int(event.y*displayH)), button=1)
     if event.type == pg.FINGERUP:
-        return pg.event.Event(pg.MOUSEBUTTONUP, pos=(int(event.x*width), int(event.y*height)), button=1)
+        return pg.event.Event(pg.MOUSEBUTTONUP, pos=(int(event.x*width), int(event.y*displayH)), button=1)
     return None
 
 def handleEvents():
@@ -1944,9 +2130,10 @@ def gameStep(dt):
         specialItemDisp.update(dt)
         obstacle1.draw()
         cash.update()
+        player.shiftPressed = kbShift or touch.grindTick()   # keyboard shift OR touch GRIND pad
         player.update(dt)
         displayScore()
-        touch.draw()
+        touch.drawOverlay()   # landscape only (portrait draws its pads under the game)
 
 
 
@@ -1991,20 +2178,41 @@ def gameStep(dt):
     screen.blit(versionSurf, (0,0))
 
 
+def applyLayout(newH):
+    """Switch between the normal window (landscape) and the taller one (phone held upright)."""
+    global display, gameSurface, screen, displayH
+    displayH = newH
+    display = pg.display.set_mode((width, newH))
+    if newH == height:
+        gameSurface = display
+    else:
+        # the game keeps drawing at 800x450 in the top part; the pads go in the space below
+        gameSurface = display.subsurface(pg.rect.Rect(0, 0, width, height))
+    screen = gameSurface
+    touch.setLayout(width, newH)
+
+
 async def main():
     global screen, keys, running
-    realScreen = screen
     dummyScreen = pg.Surface((1, 1))   # catch-up ticks draw here (nobody sees them)
     accumulator = 0.0
+    frameNum = 0
+    touchDevice = isTouchDevice()
 
     while running:
         # real time since the last frame (clock.tick also caps us at 60 fps)
         accumulator += min(clock.tick(60) / 1000, MAX_FRAME_TIME)
 
+        # a few times a second: is the page now tall (phone upright) or wide (phone sideways)?
+        frameNum += 1
+        if touchDevice and frameNum % 15 == 1:
+            newH = wantedDisplayHeight(touchDevice)
+            if newH != displayH and (newH == height or displayH == height or abs(newH - displayH) > 24):
+                applyLayout(newH)
+
         handleEvents()
         touch.refresh()
         keys.update(pg.key.get_pressed(), touch)
-        player.shiftPressed = kbShift or touch.state["grind"]
         player.jumpMobile = touch.state["jump"]
 
         # How many 1/60 s game ticks are owed? (small tolerance stops jitter on 60 Hz screens)
@@ -2019,13 +2227,14 @@ async def main():
         # several ticks are owed, the earlier ones just move things (no drawing), so the
         # game keeps the right speed instead of running in slow motion.
         for i in range(steps):
-            screen = realScreen if i == steps - 1 else dummyScreen
+            screen = gameSurface if i == steps - 1 else dummyScreen
             gameStep(FIXED_DT)
-        screen = realScreen
+        screen = gameSurface
 
         if steps > 0:
             for btn in menuButtons:
                 btn.endFrame()
+            touch.drawPanel(display)    # portrait only: pads in the space under the game
             #refreshes the screen (at most 60 times a second)
             pg.display.flip()
 

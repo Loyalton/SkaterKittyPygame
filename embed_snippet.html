@@ -1,15 +1,147 @@
-<!-- Paste into the Shopify page (Edit HTML / "<>" button) in place of the plain link. -->
+<!-- Skater Kitty embed v2 - paste into the Shopify page with the <> (Show HTML) button.
+     Replaces the old embed completely. To change the game address, edit GAME_URL near the bottom. -->
 <style>
-  .vmr-game { position: relative; width: 100%; max-width: 960px; margin: 0 auto; aspect-ratio: 16 / 9; background: #000; }
-  .vmr-game iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-  .vmr-rotate { display: none; text-align: center; padding: 8px; font-weight: bold; }
-  @media (orientation: portrait) and (max-width: 700px) { .vmr-rotate { display: block; } }
-  .vmr-fs { display: block; margin: 8px auto; padding: 10px 18px; font-size: 16px; }
+  .vmr-wrap { max-width: 960px; margin: 0 auto; }
+  .vmr-game { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; overflow: hidden; border-radius: 6px; }
+  .vmr-game iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+
+  /* real full screen (desktop, Android, iPad) */
+  .vmr-game:fullscreen { aspect-ratio: auto; width: 100%; height: 100%; border-radius: 0; }
+  .vmr-game:-webkit-full-screen { aspect-ratio: auto; width: 100%; height: 100%; border-radius: 0; }
+  /* fallback "full screen" for iPhone, whose Safari has no full screen mode for web pages */
+  .vmr-game.vmr-fs { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; aspect-ratio: auto;
+                     border-radius: 0; z-index: 2147483646; }
+  body.vmr-noscroll { position: fixed; width: 100%; overflow: hidden; }
+
+  /* "tap to play" poster: the game only starts downloading when this is tapped */
+  .vmr-poster { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; align-items: center;
+                justify-content: center; gap: 6px; color: #fff; text-align: center; cursor: pointer; padding: 12px;
+                background: radial-gradient(circle at 50% 40%, #2a7fb8 0%, #123a5c 60%, #0a1a2b 100%); }
+  .vmr-play { width: 72px; height: 72px; border-radius: 50%; background: #79e030; color: #0a1a2b; font-size: 34px;
+              display: flex; align-items: center; justify-content: center; padding-left: 6px; box-sizing: border-box; }
+  .vmr-title { font: 800 clamp(20px, 5vw, 34px) system-ui, sans-serif; letter-spacing: .06em; }
+  .vmr-sub { font: 500 clamp(12px, 2.6vw, 16px) system-ui, sans-serif; opacity: .85; }
+
+  /* instructions shown while the game loads (taps pass straight through to the game) */
+  .vmr-hint { display: none; position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; pointer-events: none;
+              background: rgba(0,0,0,.78); color: #fff; padding: 10px 40px 10px 12px; text-align: center;
+              font: 600 clamp(13px, 3.2vw, 18px)/1.35 system-ui, sans-serif; }
+  .vmr-hint b { color: #79e030; }
+  .vmr-hint button { pointer-events: auto; position: absolute; right: 6px; top: 6px; width: 28px; height: 28px; border: 0;
+                     border-radius: 50%; background: rgba(255,255,255,.25); color: #fff; font-size: 16px; cursor: pointer; }
+
+  .vmr-exit { display: none; position: absolute; top: 8px; right: 8px; z-index: 6; height: 36px; padding: 0 14px; border: 0;
+              border-radius: 18px; background: rgba(0,0,0,.6); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .vmr-game:fullscreen .vmr-exit, .vmr-game:-webkit-full-screen .vmr-exit, .vmr-game.vmr-fs .vmr-exit { display: block; }
+
+  .vmr-bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: center; margin: 10px 0 4px; }
+  .vmr-bar button { padding: 10px 18px; font-size: 16px; cursor: pointer; }
+  .vmr-help { text-align: center; font-size: 14px; line-height: 1.5; margin: 4px 0; }
+  .vmr-touch-tip { display: none; }
+  @media (pointer: coarse) { .vmr-touch-tip { display: block; } }
 </style>
-<p class="vmr-rotate">Turn your phone sideways to play, then tap the game to start.</p>
-<div class="vmr-game" id="vmrGame">
-  <iframe src="https://loyalton.github.io/SkaterKittyPygame/build/web/index.html"
-          title="VMR Skater" allow="autoplay; fullscreen" allowfullscreen loading="lazy"></iframe>
+
+<div class="vmr-wrap">
+  <div class="vmr-game" id="vmrGame">
+    <iframe id="vmrFrame" title="VMR Skater" allow="autoplay; fullscreen" allowfullscreen></iframe>
+
+    <div class="vmr-poster" id="vmrPoster" role="button" tabindex="0" aria-label="Tap to play">
+      <div class="vmr-play">&#9654;</div>
+      <div class="vmr-title">TAP TO PLAY</div>
+      <div class="vmr-sub">Skater Kitty &middot; loads in a few seconds</div>
+    </div>
+
+    <div class="vmr-hint" id="vmrHint">
+      1. Wait for the <b>green loading bar</b> to fill.<br>
+      2. Then <b>tap the screen once</b> to start the game.
+      <button type="button" id="vmrHintX" aria-label="Hide tip">&times;</button>
+    </div>
+
+    <button type="button" class="vmr-exit" id="vmrExit" aria-label="Exit full screen">&times; Exit</button>
+  </div>
+
+  <div class="vmr-bar">
+    <button type="button" id="vmrFsBtn">&#9974; Full screen</button>
+    <a href="https://loyalton.github.io/SkaterKittyPygame/build/web/index.html" target="_blank" rel="noopener">Open the game on its own page</a>
+  </div>
+  <p class="vmr-help vmr-touch-tip"><b>On a phone:</b> tap <b>Full screen</b> for bigger buttons. Play upright (buttons under the game) or turn your phone sideways.</p>
+  <p class="vmr-help">
+    <b>Keyboard:</b> D = speed up, A = slow down, Space = ollie (hold, then let go), Shift = grind.<br>
+    <b>Touch:</b> left pad = BRAKE (top) / PUSH (bottom), right pad = GRIND (top) / JUMP (bottom). Keep your thumb down and slide between the zones.
+  </p>
 </div>
-<button class="vmr-fs" onclick="var e=document.getElementById('vmrGame'); (e.requestFullscreen||e.webkitRequestFullscreen).call(e)">Full screen</button>
-<p>Desktop: D = speed up, A = slow down, Space = ollie, Shift = grind. Phone/tablet: use the on-screen buttons.</p>
+
+<script>
+(function () {
+  var GAME_URL = 'https://loyalton.github.io/SkaterKittyPygame/build/web/index.html';
+
+  var box = document.getElementById('vmrGame'), frame = document.getElementById('vmrFrame'),
+      poster = document.getElementById('vmrPoster'), hint = document.getElementById('vmrHint'),
+      fsBtn = document.getElementById('vmrFsBtn'), exitBtn = document.getElementById('vmrExit');
+  var fake = false, savedScroll = 0;
+
+  /* ---- start: the game is only downloaded once someone asks for it ---- */
+  function hideHint() { hint.style.display = 'none'; }
+  function startGame() {
+    if (!frame.getAttribute('src')) {
+      frame.setAttribute('src', GAME_URL);
+      hint.style.display = 'block';
+      setTimeout(hideHint, 120000);
+    }
+    poster.style.display = 'none';
+  }
+  poster.addEventListener('click', startGame);
+  poster.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startGame(); }
+  });
+  document.getElementById('vmrHintX').addEventListener('click', hideHint);
+  /* once the person taps inside the game, the page loses focus to the frame: hide the tip */
+  window.addEventListener('blur', function () {
+    setTimeout(function () { if (document.activeElement === frame) hideHint(); }, 0);
+  });
+
+  /* ---- full screen ---- */
+  function isRealFs() { return document.fullscreenElement === box || document.webkitFullscreenElement === box; }
+
+  function sizeFake() {
+    if (fake) { box.style.width = window.innerWidth + 'px'; box.style.height = window.innerHeight + 'px'; }
+  }
+  function enterFake() {
+    if (fake) return;
+    fake = true;
+    savedScroll = window.pageYOffset || 0;
+    document.body.style.top = (-savedScroll) + 'px';
+    document.body.classList.add('vmr-noscroll');
+    box.classList.add('vmr-fs');
+    sizeFake();
+  }
+  function leaveFake() {
+    if (!fake) return;
+    fake = false;
+    box.classList.remove('vmr-fs');
+    box.style.width = box.style.height = '';
+    document.body.classList.remove('vmr-noscroll');
+    document.body.style.top = '';
+    window.scrollTo(0, savedScroll);
+  }
+  function enter() {
+    startGame();
+    var req = box.requestFullscreen || box.webkitRequestFullscreen;
+    if (!req) { enterFake(); return; }                       /* iPhone: no real full screen available */
+    try {
+      var p = req.call(box);
+      if (p && p.catch) p.catch(enterFake);
+    } catch (e) { enterFake(); return; }
+    setTimeout(function () { if (!isRealFs() && !fake) enterFake(); }, 1200);   /* safety net */
+  }
+  function leave() {
+    if (isRealFs()) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); }
+    leaveFake();
+  }
+  fsBtn.addEventListener('click', function () { (isRealFs() || fake) ? leave() : enter(); });
+  exitBtn.addEventListener('click', leave);
+  window.addEventListener('resize', sizeFake);
+  window.addEventListener('orientationchange', function () { setTimeout(sizeFake, 300); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') leaveFake(); });
+})();
+</script>
